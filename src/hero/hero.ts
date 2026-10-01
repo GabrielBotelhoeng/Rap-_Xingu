@@ -1,17 +1,21 @@
 /* ================= MOTOR DO HERO CINÉTICO =================
-   Portado de docs/referencias/hero-rape-xingu/index.html, mesma lógica de animação.
-   Diferenças pedidas no PROJETO.md:
-   - a roda do mouse não é sequestrada: o hero fica preso (ScrollTrigger) por N trechos
-     de scroll, cada trecho avança um sabor, e depois a página é liberada;
-   - o autoplay continua valendo enquanto ninguém rola.
+   Portado de docs/referencias/hero-rape-xingu/index.html, mesma lógica de animação, com:
+   - a roda do mouse não é sequestrada: o hero fica preso (ScrollTrigger) por N trechos de scroll,
+     cada trecho avança um sabor, e depois a página é liberada; o autoplay vale enquanto ninguém rola;
+   - produto = lata aberta + tampa das fotos padronizadas: chega fechado (a tampa por cima da lata),
+     pousa e abre — a tampa desliza para o lado e o pó levanta;
+   - a palavra fica acima do produto, que só encosta na base das letras (placement.ts › stackLayout);
+   - fundo flutuante de latinhas, folhas e especiarias (floaters.ts).
    Os textos, imagens, cores e tempos ficam em hero.config.ts. */
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { scrollStep, wrapIndex } from "@/lib/progress";
 import { setRichText } from "@/lib/dom";
-import { HERO_CONFIG, type EnterFrom, type HeroPlacement, type HeroSlide } from "./hero.config";
+import { PRODUCTS, lidRatio } from "@/content/products";
+import { HERO_CONFIG, type EnterFrom, type HeroSlide } from "./hero.config";
 import { createDust } from "./dust";
-import { fitVertical, fitWidth, pivotShift } from "./placement";
+import { initFloaters } from "./floaters";
+import { OPEN_GAP, boxExtents, pairCenters, pairExtents, perWidth, stackLayout, type Extents, type StackLayout } from "./placement";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,12 +24,12 @@ const asset = (src: string) => `${import.meta.env.BASE_URL}${src}`;
 const MQ_MOBILE = "(max-width: 760px), (orientation: portrait) and (max-width: 1100px)";
 const MQ_TABLET = "(min-width: 761px) and (max-width: 1180px) and (orientation: landscape)";
 
-/** Desktop: folga entre a palavra/produto e o painel de textos ou o seletor (px). */
+/** Desktop: folga entre o centro (palavra e produto) e o painel de textos ou o seletor (px). */
 const SIDE_GAP = 24;
-/** Celular: folga entre a base do produto e o painel de textos (px). */
-const PANEL_GAP = 8;
-/** Celular: fração de cima da palavra que o produto não cobre quando precisa subir. */
-const WORD_VISIBLE = 0.35;
+/** Folga abaixo do header e acima do painel (celular) ou da barra de baixo (desktop), em px. */
+const EDGE_GAP = 14;
+/** Quanto a flutuação sobe o produto (px). Entra na conta da sobreposição com a palavra. */
+const FLOAT = 8;
 
 /** direção de entrada → vetor (a saída usa o oposto) */
 const ENTER_VEC: Record<EnterFrom, [number, number]> = {
@@ -37,6 +41,30 @@ const ENTER_VEC: Record<EnterFrom, [number, number]> = {
 
 type Source = "auto" | "user";
 
+/** Geometria do produto de um slide, em unidades da largura da composição aberta. */
+interface Geometry {
+  /** altura da caixa / largura */
+  ratio: number;
+  /** extents girados por unidade de largura */
+  ext: Extents;
+  /** lata e tampa: centros (em diâmetros da lata) e largura da composição */
+  pair: { tin: number; lid: number; width: number; lidD: number } | null;
+}
+
+function geometry(s: HeroSlide): Geometry {
+  if (s.product.kind === "image") {
+    const ratio = s.product.height / s.product.width;
+    return { ratio, ext: boxExtents(1, ratio, s.rotate), pair: null };
+  }
+  const g = { lid: lidRatio(PRODUCTS[s.product.id]), gap: OPEN_GAP };
+  const c = pairCenters(g);
+  return {
+    ratio: Math.max(1, g.lid) / c.width,
+    ext: perWidth(pairExtents(g, s.rotate), c.width),
+    pair: { ...c, lidD: g.lid },
+  };
+}
+
 export interface HeroController {
   /** Toca a entrada e libera o autoplay. Chamado depois do age gate. */
   start(): void;
@@ -46,16 +74,18 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   const C = HERO_CONFIG;
   const S = C.slides;
   const N = S.length;
-  const $ = <T extends Element = HTMLElement>(sel: string): T => {
-    const el = root.querySelector<T>(sel);
+  const $ = <T extends Element = HTMLElement>(sel: string, scope: ParentNode = root): T => {
+    const el = scope.querySelector<T>(sel);
     if (!el) throw new Error(`[hero] elemento não encontrado: ${sel}`);
     return el;
   };
 
   const wordEl = $("[data-hero-word]");
-  const img = $<HTMLImageElement>("[data-hero-img]");
   const move = $("[data-hero-move]");
   const flt = $("[data-hero-float]");
+  const pairEl = $("[data-hero-pair]");
+  const tinEl = $<HTMLImageElement>("[data-hero-tin]");
+  const lidEl = $<HTMLImageElement>("[data-hero-lid]");
   const bar = $("[data-hero-progress]");
   const info = $("[data-hero-info]");
   const pickerLabel = $("[data-hero-picker-label]");
@@ -63,12 +93,17 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   const layers = { cur: $("[data-hero-layer='current']"), nxt: $("[data-hero-layer='next']") };
   const infoItems = Array.from(info.querySelectorAll<HTMLElement>("[data-hero-item]"));
   const picker = $(".hero__picker");
-  const fadeIns = [...infoItems, picker, $(".hero__bottom")];
+  const bottomBar = $(".hero__bottom");
+  const fadeIns = [...infoItems, picker, bottomBar];
+  const header = document.querySelector<HTMLElement>("[data-site-header]");
   const dust = createDust($<HTMLCanvasElement>("[data-hero-dust]"), root);
+  const floaters = initFloaters(root, { reducedMotion });
 
   const mq = matchMedia(MQ_MOBILE);
   const tablet = matchMedia(MQ_TABLET);
   const slide = (i: number) => S[wrapIndex(i, N)] as HeroSlide;
+  const geo = S.map(geometry);
+  const geoOf = (s: HeroSlide) => geo[S.indexOf(s)] ?? geometry(s);
 
   let index = 0; // slide visível (troca no meio da transição)
   let target = 0; // destino da transição em curso ou pendente
@@ -82,18 +117,13 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   let pageVisible = !document.hidden;
   let userPaused = false;
   let focusInside = false;
-
-  // pré-carrega as imagens dos slides
-  S.forEach((s) => {
-    const i = new Image();
-    i.decoding = "async";
-    i.src = asset(s.image.src);
-  });
+  let wordAspect = 2; // largura da palavra / font-size, medida em buildWord
+  let current: StackLayout | null = null;
 
   gsap.set(wordEl, { xPercent: -50, yPercent: -50, x: 0, y: 0 }); // centralização feita pelo GSAP
+  gsap.set(move, { x: 0, y: 0, rotation: 0 });
 
   const minDim = () => Math.min(root.clientWidth, root.clientHeight * (mq.matches ? 1 : 1.25));
-  const px = (v: number) => (v / 100) * minDim();
 
   /** Desktop/tablet deitado: largura livre no centro, entre o painel de textos e o seletor. */
   function freeWidth(): number {
@@ -103,47 +133,111 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     return Math.max(0, box.width - 2 * (Math.max(left, right) + SIDE_GAP));
   }
 
-  /** Posição do produto na tela atual: a do config, encolhida ou erguida só se não couber.
-      No celular depende do texto do painel e da palavra que estão no DOM — chame depois de setInfo/buildWord. */
-  const pos = (s: HeroSlide): HeroPlacement => {
-    const p = { ...s.product, ...(mq.matches && s.mobile ? s.mobile : {}) };
-    if (tablet.matches) p.size *= C.tabletScale;
-    const w = px(p.size);
-    const h = w * (s.image.height / s.image.width);
-    const shift = pivotShift(w, h, p.rotate); // o giro também tira a imagem do lugar (ver placement.ts)
-    if (!mq.matches) return fitWidth(p, (freeWidth() / minDim()) * 100, (shift.dx / minDim()) * 100);
-
+  /** Onde ficam a palavra e o produto nesta tela. No celular depende do painel de textos que está
+      no DOM — chame depois de setInfo/buildWord. */
+  function layout(s: HeroSlide): StackLayout {
+    const g = geoOf(s);
     const box = root.getBoundingClientRect();
-    const word = wordEl.getBoundingClientRect();
-    const half = root.clientHeight / 2;
-    const fit = fitVertical(half + px(p.y) + shift.dy, h, {
-      top: word.top - box.top + word.height * WORD_VISIBLE,
-      bottom: info.getBoundingClientRect().top - box.top - PANEL_GAP,
+    const W = root.clientWidth;
+    const H = root.clientHeight;
+    const top = (header?.offsetHeight ?? 0) + EDGE_GAP;
+    if (mq.matches) {
+      return stackLayout({
+        top,
+        bottom: info.getBoundingClientRect().top - box.top - EDGE_GAP,
+        width: W * 0.92,
+        wordAspect,
+        maxFont: (H * 0.28) / 0.8,
+        productWidth: (W * s.sizeMobile) / 100,
+        extents: g.ext,
+        overlap: C.overlap,
+        float: FLOAT,
+        minScale: 0.55,
+      });
+    }
+    const free = freeWidth();
+    const scale = tablet.matches ? C.tabletScale : 1;
+    return stackLayout({
+      top,
+      bottom: bottomBar.getBoundingClientRect().top - box.top - EDGE_GAP,
+      width: free,
+      wordAspect,
+      maxFont: Math.min((H * 0.36) / 0.8, (W * (tablet.matches ? 0.4 : 0.46)) / wordAspect),
+      productWidth: ((minDim() * s.size) / 100) * scale,
+      extents: g.ext,
+      overlap: C.overlap,
+      float: FLOAT,
+      minScale: 0.6,
     });
-    // fit.cy é o centro visível; o y do GSAP é o de antes do giro (o shift encolhe junto com a escala)
-    return { ...p, size: p.size * fit.scale, y: ((fit.cy - shift.dy * fit.scale - half) / minDim()) * 100 };
-  };
-  const blurOn = () => !mq.matches; // blur animado pesa no celular
+  }
+
+  /** Centro do produto em relação ao centro do hero (o .hero__product fica no meio). */
+  const productY = (L: StackLayout) => L.productCy - root.clientHeight / 2;
+
+  function applyWord(L: StackLayout) {
+    wordEl.style.fontSize = `${L.fontSize}px`;
+    wordEl.style.top = `${L.wordCy}px`;
+  }
+
+  /** Tamanho da caixa do produto e posição da lata e da tampa (abertas) dentro dela. */
+  function sizeProduct(s: HeroSlide, L: StackLayout) {
+    const g = geoOf(s);
+    const w = L.productWidth;
+    const h = w * g.ratio;
+    Object.assign(pairEl.style, { width: `${w}px`, height: `${h}px`, left: `${-w / 2}px`, top: `${-h / 2}px` });
+    if (!g.pair) {
+      Object.assign(tinEl.style, { width: `${w}px`, height: `${h}px`, left: "0px", top: "0px" });
+      tinEl.sizes = `${Math.round(w)}px`;
+      return;
+    }
+    const D = w / g.pair.width;
+    const lidD = D * g.pair.lidD;
+    const cx = (x: number) => (x + g.pair!.width / 2) * D; // centro → px a partir da esquerda da caixa
+    Object.assign(tinEl.style, { width: `${D}px`, height: `${D}px`, left: `${cx(g.pair.tin) - D / 2}px`, top: `${(h - D) / 2}px` });
+    Object.assign(lidEl.style, {
+      width: `${lidD}px`,
+      height: `${lidD}px`,
+      left: `${cx(g.pair.lid) - lidD / 2}px`,
+      top: `${(h - lidD) / 2}px`,
+    });
+    tinEl.sizes = `${Math.round(D)}px`;
+    lidEl.sizes = `${Math.round(lidD)}px`;
+  }
+
+  /** Deslocamentos (px) que levam lata e tampa para o centro da caixa: a lata fechada. */
+  function closedOffsets(s: HeroSlide, L: StackLayout) {
+    const g = geoOf(s);
+    if (!g.pair) return { tin: 0, lid: 0 };
+    const D = L.productWidth / g.pair.width;
+    return { tin: -g.pair.tin * D, lid: -g.pair.lid * D };
+  }
+
+  function closePair(s: HeroSlide, L: StackLayout) {
+    const off = closedOffsets(s, L);
+    gsap.set(tinEl, { x: off.tin, rotation: 0, scale: 1 });
+    gsap.set(lidEl, { x: off.lid, rotation: -14, scale: 1 });
+  }
+
+  function openPairNow() {
+    gsap.set([tinEl, lidEl], { x: 0, rotation: 0, scale: 1 });
+  }
+
+  /** A tampa desliza para o lado (subindo um pouco) e a lata vai junto para o lugar dela; o pó levanta. */
+  function openTimeline(s: HeroSlide): gsap.core.Timeline {
+    const tl = gsap.timeline();
+    if (s.product.kind !== "pair") return tl;
+    const O = C.openSeconds;
+    tl.to(lidEl, { x: 0, rotation: 0, duration: O, ease: "power3.inOut" }, 0)
+      .to(lidEl, { scale: 1.07, duration: O * 0.42, ease: "sine.out" }, 0)
+      .to(lidEl, { scale: 1, duration: O * 0.58, ease: "sine.in" }, O * 0.42)
+      .to(tinEl, { x: 0, duration: O, ease: "power3.inOut" }, 0)
+      .add(() => puff(s), O * 0.32);
+    return tl;
+  }
 
   function setBg(layer: HTMLElement, s: HeroSlide) {
     layer.style.setProperty("--from", s.colors.from);
     layer.style.setProperty("--to", s.colors.to);
-  }
-
-  function placeProduct(s: HeroSlide) {
-    const p = pos(s);
-    root.style.setProperty("--pw", `${px(p.size)}px`);
-    gsap.set(move, { x: px(p.x), y: px(p.y), rotation: p.rotate, scale: 1, opacity: 1, filter: "blur(0px)" });
-  }
-
-  function fitWord() {
-    wordEl.style.fontSize = "100px";
-    const w = wordEl.scrollWidth || 1;
-    const W = root.clientWidth;
-    // desktop: a palavra também não invade o painel de textos (entre 1180 e 1440 px encostava)
-    const targetW = mq.matches ? W * 0.92 : Math.min(W * (tablet.matches ? 0.4 : 0.46), freeWidth());
-    const maxH = root.clientHeight * (mq.matches ? 0.3 : 0.5);
-    wordEl.style.fontSize = `${Math.min((100 * targetW) / w, maxH / 0.8)}px`;
   }
 
   function buildWord(s: HeroSlide) {
@@ -155,13 +249,24 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
         return sp;
       }),
     );
-    fitWord();
+    wordEl.style.fontSize = "100px";
+    wordAspect = (wordEl.scrollWidth || 200) / 100;
   }
 
   function setImage(s: HeroSlide) {
-    img.src = asset(s.image.src);
-    img.width = s.image.width;
-    img.height = s.image.height;
+    const p = s.product;
+    if (p.kind === "image") {
+      tinEl.srcset = `${asset(p.srcSm)} ${Math.round(p.width / 2)}w, ${asset(p.src)} ${p.width}w`;
+      tinEl.src = asset(p.src);
+      lidEl.hidden = true;
+      return;
+    }
+    const ph = PRODUCTS[p.id];
+    tinEl.srcset = `${asset(ph.tinSm)} ${Math.round(ph.tinPx / 2)}w, ${asset(ph.tin)} ${ph.tinPx}w`;
+    tinEl.src = asset(ph.tin);
+    lidEl.srcset = `${asset(ph.lidSm)} ${Math.round(ph.lidPx / 2)}w, ${asset(ph.lid)} ${ph.lidPx}w`;
+    lidEl.src = asset(ph.lid);
+    lidEl.hidden = false;
   }
 
   function setInfo(s: HeroSlide) {
@@ -171,6 +276,17 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     if (comp) setRichText(comp, s.composition);
     pickerLabel.textContent = s.swatchLabel;
     swatches.forEach((b, i) => b.setAttribute("aria-pressed", String(i === index)));
+  }
+
+  /** Conteúdo e posição de um slide, de uma vez (estado inicial, movimento reduzido e resize). */
+  function render(s: HeroSlide) {
+    buildWord(s);
+    setInfo(s);
+    setImage(s);
+    current = layout(s); // depois da palavra e do painel: no celular a posição depende dos dois
+    applyWord(current);
+    sizeProduct(s, current);
+    gsap.set(move, { x: 0, y: productY(current), rotation: s.rotate });
   }
 
   /* ---------- seletor de sabores ---------- */
@@ -192,25 +308,33 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     driftTween?.kill();
     if (reducedMotion) return;
     gsap.set(flt, { y: 0, rotation: 0 });
-    floatTween = gsap.to(flt, { y: -12, rotation: 1.6, duration: 1.6, ease: "sine.inOut", yoyo: true, repeat: -1 });
+    floatTween = gsap.to(flt, { y: -FLOAT, rotation: 1.2, duration: 1.7, ease: "sine.inOut", yoyo: true, repeat: -1 });
     driftTween = gsap.fromTo(
       wordEl,
       { xPercent: -50 },
-      { xPercent: -51.5, duration: C.holdSeconds + C.transitionSeconds, ease: "none" },
+      { xPercent: -51.2, duration: C.holdSeconds + C.transitionSeconds + C.openSeconds, ease: "none" },
     );
     syncPlayback();
   }
 
+  /** Pó que levanta quando o produto pousa. */
   function burst(s: HeroSlide) {
-    if (reducedMotion) return;
-    const p = pos(s);
-    dust.burst(
-      root.clientWidth / 2 + px(p.x),
-      root.clientHeight / 2 + px(p.y),
-      px(p.size) / 2,
-      s.dust,
-      mq.matches ? 70 : 140,
-    );
+    if (reducedMotion || !current) return;
+    const g = geoOf(s);
+    const w = current.productWidth;
+    dust.burst(root.clientWidth / 2, current.productCy, (w * Math.min(1, g.ratio * 1.2)) / 2, s.dust, mq.matches ? 60 : 120);
+  }
+
+  /** Pó que sobe da lata quando a tampa sai. */
+  function puff(s: HeroSlide) {
+    if (reducedMotion || !current || s.product.kind !== "pair") return;
+    const g = geoOf(s);
+    if (!g.pair) return;
+    const D = current.productWidth / g.pair.width;
+    const r = (s.rotate * Math.PI) / 180;
+    const x = root.clientWidth / 2 + Math.cos(r) * g.pair.tin * D;
+    const y = current.productCy + Math.sin(r) * g.pair.tin * D;
+    dust.burst(x, y, D * 0.32, PRODUCTS[s.product.id].powder, mq.matches ? 50 : 90);
   }
 
   /* ---------- transição ---------- */
@@ -232,14 +356,14 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     const from = slide(index);
     const to = slide(next);
     const T = C.transitionSeconds;
-    const pf = pos(from);
-    let pTo = pos(to); // no celular é refeito na troca de conteúdo, com o texto novo no painel
     const W = root.clientWidth;
     const H = root.clientHeight;
+    const yFrom = current ? productY(current) : 0;
+    let lTo: StackLayout | null = null; // refeito na troca de conteúdo, com o texto novo no painel
     const [ex, ey] = ENTER_VEC[to.enter];
-    const ox = 50 + (px(pf.x) / W) * 100;
-    const oy = 50 + (px(pf.y) / H) * 100;
-    const blur = (v: number) => (blurOn() ? `blur(${v}px)` : "blur(0px)");
+    const ox = 50;
+    const oy = 50 + (yFrom / H) * 100;
+    const blur = (v: number) => (!mq.matches ? `blur(${v}px)` : "blur(0px)"); // blur animado pesa no celular
 
     if (reducedMotion) {
       gsap.to([wordEl, move, ...infoItems], {
@@ -248,16 +372,15 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
         onComplete: () => {
           index = next;
           setBg(layers.cur, to);
-          buildWord(to);
-          setInfo(to);
-          placeProduct(to); // depois do texto novo: no celular a posição depende dele
-          setImage(to);
+          render(to);
+          openPairNow();
           gsap.to([wordEl, move, ...infoItems], { opacity: 1, duration: 0.3, onComplete: done });
         },
       });
       return;
     }
 
+    floaters.kick(-ex, -ey, T);
     setBg(layers.nxt, to);
     const tl = gsap.timeline({ defaults: { ease: "power3.inOut" }, onComplete: done });
 
@@ -265,9 +388,9 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     tl.to(
       move,
       {
-        x: px(pf.x) - ex * W * 0.55,
-        y: px(pf.y) - ey * H * 0.45,
-        rotation: pf.rotate - ex * 38,
+        x: -ex * W * 0.55,
+        y: yFrom - ey * H * 0.45,
+        rotation: from.rotate - ex * 38,
         scale: 0.72,
         filter: blur(4),
         duration: T * 0.5,
@@ -286,18 +409,21 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
         T * 0.12,
       )
 
-      // 3. troca de conteúdo no meio
+      // 3. troca de conteúdo no meio: o produto novo chega fechado
       .add(() => {
         index = next;
         buildWord(to);
         setInfo(to);
         setImage(to);
-        pTo = pos(to);
-        root.style.setProperty("--pw", `${px(pTo.size)}px`);
+        lTo = layout(to);
+        current = lTo;
+        applyWord(lTo);
+        sizeProduct(to, lTo);
+        closePair(to, lTo);
         gsap.set(move, {
-          x: px(pTo.x) + ex * W * 0.6,
-          y: px(pTo.y) + ey * H * 0.5,
-          rotation: pTo.rotate + ex * 40,
+          x: ex * W * 0.6,
+          y: productY(lTo) + ey * H * 0.5,
+          rotation: to.rotate + ex * 40,
           scale: 0.7,
           filter: blur(6),
         });
@@ -313,13 +439,13 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
 
       // 4. entrada: letras sobem, palavra desliza, produto pousa girando
       .to(wordEl, { xPercent: -50, duration: T * 0.8, ease: "power3.out" }, T * 0.52)
-      // valores em função: o GSAP só os lê quando o tween começa, depois do pTo refeito no passo 3
+      // valores em função: o GSAP só os lê quando o tween começa, depois do layout refeito no passo 3
       .to(
         move,
         {
-          x: () => px(pTo.x),
-          y: () => px(pTo.y),
-          rotation: () => pTo.rotate,
+          x: 0,
+          y: () => (lTo ? productY(lTo) : 0),
+          rotation: () => to.rotate,
           scale: 1,
           filter: "blur(0px)",
           duration: T * 0.62,
@@ -329,6 +455,8 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
       )
       .add(() => burst(to), T * 1.02)
       .to(infoItems, { y: 0, opacity: 1, duration: T * 0.4, stagger: 0.05, ease: "power2.out" }, T * 0.78)
+      // 5. a tampa abre (os .to() só leem a posição de partida quando começam: já fechada no passo 3)
+      .add(openTimeline(to), T * 1.08)
       .to({}, { duration: 0 }, T * 1.3);
   }
 
@@ -361,7 +489,7 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     syncPlayback();
   }
 
-  /** Autoplay e flutuação só rodam com o hero visível, a aba ativa, sem pausa e sem foco no carrossel. */
+  /** Autoplay, flutuação e fundo só se mexem com o hero visível, a aba ativa, sem pausa e sem foco no carrossel. */
   function syncPlayback() {
     const motionOn = inView && pageVisible && !userPaused;
     const advanceOn = motionOn && !focusInside;
@@ -374,6 +502,7 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
       if (motionOn) t.resume();
       else t.pause();
     });
+    floaters.setActive(motionOn);
   }
 
   /* ---------- pausa (WCAG 2.2.2) ---------- */
@@ -419,6 +548,7 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     sx = null;
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) goTo(target + (dx < 0 ? 1 : -1), "user");
   });
+  root.addEventListener("pointercancel", () => (sx = null));
 
   if (!reducedMotion) {
     let lastStep = 0;
@@ -431,6 +561,7 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
       anticipatePin: 1,
       invalidateOnRefresh: true,
       onUpdate(self) {
+        floaters.setProgress(self.progress);
         const step = scrollStep(self.progress, N);
         if (step !== lastStep) {
           const delta = step - lastStep;
@@ -455,24 +586,42 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     syncPlayback();
   }).observe(root);
 
+  // o hero usa 100svh, que não muda quando a barra de endereço do celular encolhe: refazer é barato
   let resizeTimer = 0;
   window.addEventListener("resize", () => {
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       dust.resize();
-      fitWord();
-      if (!busy) placeProduct(slide(index));
+      if (busy) return; // a troca em curso já calcula a posição do próximo sabor
+      const s = slide(index);
+      current = layout(s);
+      applyWord(current);
+      sizeProduct(s, current);
+      gsap.set(move, { y: productY(current) });
     }, 120);
   });
 
   /* ---------- estado inicial (o primeiro slide já vem no HTML) ---------- */
   const first = slide(0);
   setBg(layers.cur, first);
-  buildWord(first);
-  setInfo(first);
-  placeProduct(first); // depois da palavra e do painel: no celular a posição depende dos dois
+  render(first);
+  // pré-carrega os outros sabores no arquivo que o navegador vai escolher (sizes antes do srcset)
+  const preload = (sm: string, big: string, w: number, sizes: string) => {
+    const im = new Image();
+    im.decoding = "async";
+    im.sizes = sizes;
+    im.srcset = `${asset(sm)} ${Math.round(w / 2)}w, ${asset(big)} ${w}w`;
+  };
+  S.slice(1).forEach((s) => {
+    const p = s.product;
+    if (p.kind === "image") return preload(p.srcSm, p.src, p.width, pairEl.style.width || "60vw");
+    const ph = PRODUCTS[p.id];
+    preload(ph.tinSm, ph.tin, ph.tinPx, tinEl.sizes);
+    preload(ph.lidSm, ph.lid, ph.lidPx, lidEl.sizes);
+  });
   root.classList.add("is-ready");
   if (!reducedMotion) {
+    closePair(first, current!);
     gsap.set(wordEl.children, { yPercent: 115, opacity: 0 });
     gsap.set(move, { opacity: 0 });
     gsap.set(fadeIns, { opacity: 0 });
@@ -487,32 +636,32 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
         hold();
         return;
       }
-      const p = pos(first);
+      const L = current!;
       const [ex, ey] = ENTER_VEC[first.enter];
       gsap.set(move, { opacity: 1 });
-      gsap
-        .timeline({
-          onComplete: () => {
-            startFloat();
-            hold();
-          },
-        })
-        .to(wordEl.children, { yPercent: 0, opacity: 1, duration: 0.8, stagger: 0.06, ease: "power3.out" }, 0.1)
+      const tl = gsap.timeline({
+        onComplete: () => {
+          startFloat();
+          hold();
+        },
+      });
+      tl.to(wordEl.children, { yPercent: 0, opacity: 1, duration: 0.8, stagger: 0.06, ease: "power3.out" }, 0.1)
         .from(
           move,
           {
-            x: px(p.x) + ex * root.clientWidth * 0.6,
-            y: px(p.y) + ey * root.clientHeight * 0.5,
-            rotation: p.rotate + 40,
+            x: ex * root.clientWidth * 0.6,
+            y: productY(L) + ey * root.clientHeight * 0.5,
+            rotation: first.rotate + 40,
             scale: 0.7,
-            filter: blurOn() ? "blur(6px)" : "blur(0px)",
+            filter: mq.matches ? "blur(0px)" : "blur(6px)",
             duration: 0.9,
             ease: "back.out(1.25)",
           },
           0.2,
         )
         .add(() => burst(first), 0.95)
-        .fromTo(fadeIns, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.05, ease: "power2.out" }, 0.5);
+        .fromTo(fadeIns, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.05, ease: "power2.out" }, 0.5)
+        .add(openTimeline(first), 1.05);
     },
   };
 }

@@ -3,7 +3,9 @@
  * celulares com a altura real do Safari (barras abertas = 100svh): iPhone SE e iPhone 13.
  * Uso: npm run build && npm run shots [-- --only=1440,375s --reduced=1 --base=http://localhost:4173/]
  * Requer o Chrome instalado; salva em .shots/ (fora do git). Além das imagens, confere os bugs de
- * layout já vistos (CTA dos destaques fora da tela ou sob a barra de WhatsApp, header sem fundo).
+ * layout já vistos: palavra do hero coberta pelo produto (no máximo a base das letras), palavra sobre o
+ * painel ou fora da tela, rolagem horizontal, CTA dos destaques fora da tela ou sob a barra de WhatsApp
+ * e header sem fundo no fim da página.
  */
 import { chromium } from "playwright-core";
 import { preview } from "vite";
@@ -63,17 +65,38 @@ try {
 
     await page.click("[data-age-yes]");
     await page.mouse.move(0, 0); // o ponteiro parado no meio da tela deixava um card em :hover
-    await sleep(2200);
+    await sleep(2600); // entrada + a tampa abrindo
     await shot("01-hero");
-    // a palavra do hero cabe na tela e, no desktop, não invade o painel de textos
-    // (com movimento reduzido ela saía gigante: o fitWord media durante uma transição de CSS)
-    const word = await page.evaluate(() => {
-      const w = document.querySelector("[data-hero-word]")?.getBoundingClientRect();
-      const i = document.querySelector("[data-hero-info]")?.getBoundingClientRect();
-      return w && i ? { left: w.left, right: w.right, infoRight: i.right, vw: window.innerWidth } : null;
-    });
-    if (word && !vp.mobile && word.left < word.infoRight) problem(`01-hero: palavra sobre o painel de textos`);
-    if (word && (word.left < -1 || word.right > word.vw + 1)) problem(`01-hero: palavra sai da tela`);
+
+    // a palavra do hero cabe na tela, não invade o painel (desktop) e o produto cobre no máximo a base dela
+    // (a tinta das maiúsculas da Big Shoulders vai de 0,015 em acima da caixa até 0,8 em; ver placement.ts)
+    const checkHero = async (label) => {
+      const r = await page.evaluate(() => {
+        const word = document.querySelector("[data-hero-word]");
+        const info = document.querySelector("[data-hero-info]")?.getBoundingClientRect();
+        const parts = [...document.querySelectorAll("[data-hero-tin], [data-hero-lid]")]
+          .filter((el) => !el.hidden)
+          .map((el) => el.getBoundingClientRect());
+        if (!word || !info || !parts.length) return null;
+        const w = word.getBoundingClientRect();
+        const fs = parseFloat(getComputedStyle(word).fontSize);
+        const inkTop = w.top - 0.015 * fs;
+        const productTop = Math.min(...parts.map((p) => p.top));
+        return {
+          left: w.left,
+          right: w.right,
+          infoRight: info.right,
+          vw: window.innerWidth,
+          visible: (productTop - inkTop) / (0.8 * fs),
+        };
+      });
+      if (!r) return problem(`${label}: hero sem palavra ou produto`);
+      if (!vp.mobile && r.left < r.infoRight) problem(`${label}: palavra sobre o painel de textos`);
+      if (r.left < -1 || r.right > r.vw + 1) problem(`${label}: palavra sai da tela`);
+      // 0,16 de sobreposição no config; a folga cobre a caixa da imagem girada (maior que o círculo)
+      if (r.visible < 0.74) problem(`${label}: produto cobre ${Math.round((1 - r.visible) * 100)}% da palavra`);
+    };
+    await checkHero("01-hero");
 
     // posições reais: os pins somam espaçadores, então o passo de cada um sai do .pin-spacer
     const pos = await page.evaluate(() => {
@@ -90,8 +113,11 @@ try {
         vh: window.innerHeight,
         heroStep: pinStep("#inicio", document.querySelectorAll(".swatch").length),
         slides: document.querySelectorAll(".swatch").length,
-        destaques: top("#destaques"),
-        dqStep: pinStep("[data-dq]", document.querySelectorAll("[data-dq-item]").length),
+        // centro do palco de cada destaque (sem pin: a posição é a do documento)
+        dqStages: [...document.querySelectorAll(".dq-item__stage")].map((el) => {
+          const r = el.getBoundingClientRect();
+          return r.top + window.scrollY + r.height / 2;
+        }),
         catalogo: top("#catalogo"),
         fabrica: top("#fabrica"),
         revenda: top("#revenda"),
@@ -104,34 +130,33 @@ try {
       await sleep(wait);
     };
 
-    // cada sabor do hero: o meio do trecho de scroll dele
+    // cada sabor do hero: o meio do trecho de scroll dele (espera a troca e a tampa abrir)
     for (let k = 1; pos.heroStep > 0 && k < pos.slides; k++) {
-      await go(pos.heroStep * k, 1600);
+      await go(pos.heroStep * k, 2600);
       await shot(`0${k + 1}-hero-${k + 1}`);
+      await checkHero(`0${k + 1}-hero-${k + 1}`);
     }
 
-    const dq = [
-      ["10-destaque1-fechada", 0, 0.08],
-      ["11-destaque1-abrindo", 0, 0.42],
-      ["12-destaque1-aberta", 0, 0.8],
-      ["13-destaque2-aberta", 1, 1.8],
-      ["14-destaque3-aberta", 2, 2.8],
-    ];
-    const dqStep = pos.dqStep || pos.vh;
-    for (const [label, i, f] of dq) {
-      await go(pos.destaques + dqStep * f, 1500);
-      await shot(label);
-      // o botão do sabor na tela tem que estar inteiro e livre da barra de WhatsApp
-      const cta = await page.evaluate((n) => {
-        const btn = document.querySelector(`.destaques.is-animated [data-dq-item="${n}"] .dq__cta`);
-        const bar = document.querySelector("[data-wa-bar].is-visible");
-        if (!btn) return null;
-        const b = btn.getBoundingClientRect();
-        const w = bar && getComputedStyle(bar).display !== "none" ? bar.getBoundingClientRect() : null;
-        return { bottom: b.bottom, vh: window.innerHeight, bar: w ? w.top : null };
-      }, i);
-      if (cta && cta.bottom > cta.vh) problem(`${label}: CTA sai da tela (${Math.round(cta.bottom)} > ${cta.vh})`);
-      if (cta?.bar !== null && cta?.bar !== undefined && cta.bottom > cta.bar) problem(`${label}: CTA sob a barra de WhatsApp`);
+    // destaques: cada latinha abrindo (palco a 3/4 da tela) e aberta (palco no meio)
+    for (const [i, center] of pos.dqStages.entries()) {
+      for (const [label, at] of [
+        [`1${i * 2}-destaque${i + 1}-abrindo`, 0.78],
+        [`1${i * 2 + 1}-destaque${i + 1}-aberta`, 0.5],
+      ]) {
+        await go(center - pos.vh * at, 1500);
+        await shot(label);
+        // o botão do sabor, quando está na tela, fica livre da barra de WhatsApp
+        const cta = await page.evaluate((n) => {
+          const btn = document.querySelectorAll(".dq-item__cta")[n];
+          const bar = document.querySelector("[data-wa-bar].is-visible");
+          if (!btn) return null;
+          const b = btn.getBoundingClientRect();
+          const w = bar && getComputedStyle(bar).display !== "none" ? bar.getBoundingClientRect() : null;
+          return { top: b.top, bottom: b.bottom, vh: window.innerHeight, bar: w ? w.top : null };
+        }, i);
+        const onScreen = cta && cta.top < cta.vh && cta.bottom > 0;
+        if (onScreen && cta.bar !== null && cta.bottom > cta.bar) problem(`${label}: CTA sob a barra de WhatsApp`);
+      }
     }
 
     await go(pos.catalogo);
@@ -148,6 +173,9 @@ try {
     await shot("50-faq");
     await go(pos.max, 900);
     await shot("60-rodape");
+    // nada pode criar rolagem lateral (no celular ela aparece como a página "dançando" para o lado)
+    const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    if (wide > 1) problem(`rolagem horizontal de ${wide}px`);
     // no fim da página o header continua com fundo (o trigger fica inativo em progress 1)
     const solid = await page.evaluate(() => document.querySelector("[data-site-header]")?.classList.contains("is-solid"));
     if (!solid) problem("60-rodape: header sem fundo no fim da página");

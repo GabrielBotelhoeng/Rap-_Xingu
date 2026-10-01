@@ -5,8 +5,17 @@ import { describe, expect, it } from "vitest";
 import type { IndexHtmlTransformHook } from "vite";
 import { contentPlugin } from "../build/content-plugin";
 import { FLAVORS, LINE_ORDER, filterFlavors, flavorById } from "../src/content/catalog";
-import { HERBS, herbSrc } from "../src/content/herbs";
-import { esc, renderCatalogCards, renderDestaques, renderFlavorOptions, renderJsonLd, withPlaceholders } from "../src/content/render";
+import { PRODUCTS } from "../src/content/products";
+import {
+  esc,
+  heroInitial,
+  renderCatalogCards,
+  renderDestaques,
+  renderFlavorOptions,
+  renderHeroFloaters,
+  renderJsonLd,
+  withPlaceholders,
+} from "../src/content/render";
 import { DESTAQUES_CONFIG } from "../src/destaques/destaques.config";
 import { HERO_CONFIG } from "../src/hero/hero.config";
 
@@ -36,26 +45,40 @@ describe("catálogo (copy › Catálogo)", () => {
 });
 
 describe("destaques e hero", () => {
-  it("destaques apontam para sabores do catálogo e para ervas recortadas", () => {
+  it("destaques apontam para sabores do catálogo com fotos padronizadas", () => {
+    expect(DESTAQUES_CONFIG.items.length).toBeGreaterThan(0);
     for (const item of DESTAQUES_CONFIG.items) {
       expect(flavorById(item.flavorId), item.flavorId).toBeDefined();
-      expect(item.herbs.length).toBeLessThanOrEqual(6);
-      for (const h of item.herbs) {
-        expect(HERBS[h]).toBeDefined();
-        expect(existsSync(publicFile(herbSrc(h))), h).toBe(true);
-      }
-      if (item.lid) expect(existsSync(publicFile(item.lid.src))).toBe(true);
+      const p = PRODUCTS[item.product];
+      for (const f of [p.tin, p.tinSm, p.lid, p.lidSm]) expect(existsSync(publicFile(f)), f).toBe(true);
+      expect(item.glow).toMatch(/^#[0-9a-f]{6}$/i);
     }
-    expect(existsSync(publicFile(DESTAQUES_CONFIG.openTin.src))).toBe(true);
   });
 
-  it("slides do hero têm imagem e posição válidas", () => {
+  it("slides do hero têm fotos, tamanho e cores válidos", () => {
     expect(HERO_CONFIG.slides.length).toBeGreaterThan(1);
+    expect(HERO_CONFIG.slides[0]?.product.kind).toBe("pair"); // o 1º slide vem no HTML como lata + tampa
     for (const s of HERO_CONFIG.slides) {
-      expect(existsSync(publicFile(s.image.src)), s.image.src).toBe(true);
-      expect(s.product.size).toBeGreaterThan(0);
+      const p = s.product;
+      const files =
+        p.kind === "pair"
+          ? [PRODUCTS[p.id].tin, PRODUCTS[p.id].tinSm, PRODUCTS[p.id].lid, PRODUCTS[p.id].lidSm]
+          : [p.src, p.srcSm];
+      for (const f of files) expect(existsSync(publicFile(f)), f).toBe(true);
+      expect(s.size).toBeGreaterThan(0);
+      expect(s.sizeMobile).toBeGreaterThan(0);
       expect(s.colors.from).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(s.dust).toMatch(/^\d+,\d+,\d+$/);
     }
+  });
+
+  it("o fundo flutuante usa arquivos que existem e só ervas, folhas e latinhas reais", () => {
+    expect(HERO_CONFIG.floaters.length).toBeGreaterThan(5);
+    for (const f of HERO_CONFIG.floaters) {
+      expect(existsSync(publicFile(f.src)), f.src).toBe(true);
+      expect(f.src).toMatch(/^img\/(fundo|produtos)\//);
+    }
+    expect(HERO_CONFIG.floaters.some((f) => f.mobile !== false)).toBe(true);
   });
 });
 
@@ -77,12 +100,34 @@ describe("render", () => {
     expect(renderFlavorOptions().match(/type="checkbox"/g)).toHaveLength(14);
   });
 
-  it("gera os destaques com o texto da copy", () => {
+  it("gera os destaques com o texto da copy, sem pin e com a latinha já aberta no HTML", () => {
     const html = renderDestaques();
+    const n = DESTAQUES_CONFIG.items.length;
     expect(html).not.toContain("Os mais pedidos"); // o título fica no index.html
-    expect(html.match(/data-dq-item="/g)).toHaveLength(3);
-    expect(html).toContain("Quero revender este sabor");
+    expect(html.match(/data-dq-item>/g)).toHaveLength(n);
+    expect(html.match(/Quero revender este sabor/g)).toHaveLength(n);
     expect(html).toContain("Latinha de 10g · caixa com 12");
+    expect(html).toContain("Mentol intenso sobre um fundo de cravo e alecrim.");
+    // lata e tampa com a posição aberta no style e o deslocamento para fechar em data-closed
+    expect(html.match(/class="dq-item__tin" style="left:[\d.]+%;top:[\d.]+%;width:[\d.]+%" data-closed="[\d.-]+"/g)).toHaveLength(n);
+    expect(html.match(/class="dq-item__lid" style="left:[\d.]+%;top:0;width:[\d.]+%" data-closed="-[\d.]+"/g)).toHaveLength(n);
+    // linha de apoio só onde a copy tem
+    expect(html.match(/dq-item__support/g)).toHaveLength(DESTAQUES_CONFIG.items.filter((i) => i.support).length);
+  });
+
+  it("gera o fundo flutuante do hero em 3 camadas, com os itens só do desktop marcados", () => {
+    const html = renderHeroFloaters();
+    expect(html.match(/data-fl-layer="/g)).toHaveLength(3);
+    expect(html.match(/<span class="fl/g)).toHaveLength(HERO_CONFIG.floaters.length);
+    expect(html.match(/class="fl fl--desk"/g)).toHaveLength(HERO_CONFIG.floaters.filter((f) => f.mobile === false).length);
+    expect(html).toContain('aria-hidden="true"');
+  });
+
+  it("o hero começa no HTML com a palavra, a lata e a tampa do 1º sabor", () => {
+    const v = heroInitial();
+    expect(v["hero.word"]).toBe("Xingu");
+    expect(v["hero.tin"]).toMatch(/^\/img\/produtos\/.+-lata\.webp$/);
+    expect(v["hero.lidSrcset"]).toMatch(/-tampa-sm\.webp \d+w, \/img\/produtos\/.+-tampa\.webp \d+w$/);
   });
 
   it("JSON-LD LocalBusiness com o endereço de Alexânia", () => {

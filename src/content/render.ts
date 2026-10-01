@@ -3,11 +3,12 @@
  * Gera HTML estático a partir dos dados, para o conteúdo já chegar pronto no HTML.
  * Este módulo roda no Node: nada de window/document aqui.
  */
-import { FLAVORS, LINES, PENDING_COMPOSITION, flavorById, type Flavor, type Photo } from "./catalog.ts";
-import { HERBS, herbSrc, type HerbId } from "./herbs.ts";
+import { FLAVORS, LINES, PENDING_COMPOSITION, type Flavor, type Photo } from "./catalog.ts";
 import { SITE, ADDRESS_LINE } from "./site.ts";
 import { DESTAQUES_CONFIG, DESTAQUE_FORMAT, type DestaqueItem } from "../destaques/destaques.config.ts";
-import { HERO_CONFIG } from "../hero/hero.config.ts";
+import { HERO_CONFIG, type Floater } from "../hero/hero.config.ts";
+import { PRODUCTS, lidRatio, type ProductId } from "./products.ts";
+import { OPEN_GAP, pairCenters } from "../hero/placement.ts";
 
 const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ESC[c] ?? c);
@@ -65,99 +66,88 @@ export function renderFlavorOptions(flavors: readonly Flavor[] = FLAVORS): strin
     .join("\n");
 }
 
-/** Posições das ervas em volta da latinha (em % do palco). depth: 0 = fundo, 1 = frente. */
-const HERB_SLOTS = [
-  { x: 14, y: 20, w: 15, r: -24, depth: 0.85 },
-  { x: 86, y: 18, w: 13, r: 28, depth: 0.45 },
-  { x: 9, y: 70, w: 12, r: 38, depth: 0.35 },
-  { x: 88, y: 74, w: 15, r: -32, depth: 0.9 },
-  { x: 54, y: 5, w: 10, r: 12, depth: 0.25 },
-  { x: 40, y: 95, w: 12, r: -14, depth: 0.6 },
-] as const;
-
-function renderHerbs(herbs: readonly HerbId[], index: number): string {
-  const tags = herbs.slice(0, HERB_SLOTS.length).map((id, i) => {
-    const s = HERB_SLOTS[i]!;
-    const h = HERBS[id];
-    // o <span> recebe o movimento do scroll; o <img> flutua sozinho via CSS
-    return `<span class="dq__herb" style="--x:${s.x}%;--y:${s.y}%;--w:${s.w}%;--r:${s.r}deg;--depth:${s.depth};--i:${i}"><img src="${herbSrc(
-      id,
-    )}" width="${h.width}" height="${h.height}" alt="" loading="lazy" decoding="async"></span>`;
-  });
-  return `<div class="dq__herbs" data-dq-herbs="${index}">${tags.join("")}</div>`;
+/** Lata + tampa abertas lado a lado, em % da caixa (o JS só desliza as duas para o centro e de volta). */
+function pairMarkup(id: ProductId, cls: string, sizes: { tin: string; lid: string }): string {
+  const p = PRODUCTS[id];
+  const lid = lidRatio(p);
+  const c = pairCenters({ lid, gap: OPEN_GAP });
+  const pct = (v: number) => `${(v * 100).toFixed(3)}%`;
+  const srcset = (sm: string, big: string, w: number) => `/${sm} ${Math.round(w / 2)}w, /${big} ${w}w`;
+  // posição de cada peça aberta; data-closed = deslocamento (xPercent) que a leva para o centro: lata fechada
+  const tinStyle = `left:${pct((c.tin + c.width / 2 - 0.5) / c.width)};top:${pct((lid - 1) / 2 / lid)};width:${pct(1 / c.width)}`;
+  const lidStyle = `left:${pct((c.lid + c.width / 2 - lid / 2) / c.width)};top:0;width:${pct(lid / c.width)}`;
+  return `<div class="${cls}__pair" style="aspect-ratio:${c.width.toFixed(4)} / ${lid.toFixed(4)}" data-dq-pair>
+      <img class="${cls}__tin" style="${tinStyle}" data-closed="${(-c.tin * 100).toFixed(2)}" src="/${p.tin}" srcset="${srcset(p.tinSm, p.tin, p.tinPx)}" sizes="${sizes.tin}" width="${p.tinPx}" height="${p.tinPx}" alt="" loading="lazy" decoding="async">
+      <img class="${cls}__lid" style="${lidStyle}" data-closed="${((-c.lid / lid) * 100).toFixed(2)}" src="/${p.lid}" srcset="${srcset(p.lidSm, p.lid, p.lidPx)}" sizes="${sizes.lid}" width="${p.lidPx}" height="${p.lidPx}" alt="" loading="lazy" decoding="async">
+    </div>`;
 }
 
-function renderLid(item: DestaqueItem, index: number): string {
-  const flavor = flavorById(item.flavorId);
-  const inner = item.lid
-    ? img(item.lid, "", "dq__lid-img")
-    : tinPlaceholder({ name: item.title, tint: flavor?.tint ?? "#2F4A2E" }, "dq__lid-ph");
-  return `<div class="dq__lid" data-dq-lid="${index}">${inner}</div>`;
-}
-
+/** "Os mais pedidos.": um sabor por linha (o título da seção fica no index.html). */
 export function renderDestaques(items: readonly DestaqueItem[] = DESTAQUES_CONFIG.items): string {
-  const glows = items
-    .map((it, i) => `<div class="dq__glow" data-dq-glow="${i}" style="--glow:${it.glow}"></div>`)
-    .join("");
-  const herbs = items.map((it, i) => renderHerbs(it.herbs, i)).join("");
-  const lids = items.map((it, i) => renderLid(it, i)).join("");
-  const copy = items
-    .map(
-      (it, i) => `<article class="dq__item" data-dq-item="${i}" aria-labelledby="dq-name-${i}">
-  <p class="eyebrow dq__eyebrow">${esc(it.eyebrow)}</p>
-  <h3 class="dq__name" id="dq-name-${i}">${esc(it.title)}</h3>
-  <p class="dq__support">${esc(it.support)}</p>
-  <p class="dq__comp">${esc(it.composition)}</p>
-  <p class="dq__format">${esc(DESTAQUE_FORMAT)}</p>
-  <a class="btn btn--primary dq__cta" href="#revenda" data-pick="${it.flavorId}">Quero revender este sabor</a>
-</article>`,
-    )
-    .join("\n");
-  const nav = items
-    .map(
-      (it, i) =>
-        `<li class="dq__nav-item" data-dq-nav="${i}"><span class="dq__nav-num">${String(i + 1).padStart(2, "0")}</span><span class="dq__nav-name">${esc(it.title)}</span></li>`,
-    )
-    .join("");
-  const tin = DESTAQUES_CONFIG.openTin;
-  return `<div class="dq__stage" aria-hidden="true">
-  ${glows}
-  <canvas class="dq__mist" data-dq-mist></canvas>
-  ${herbs}
-  <div class="dq__tin">
-    <img class="dq__base" src="${tin.src}" width="${tin.width}" height="${tin.height}" alt="" loading="lazy" decoding="async">
-    <canvas class="dq__seq" data-dq-seq></canvas>
-    ${lids}
+  const sizes = { tin: "(max-width: 900px) 44vw, min(23vw, 300px)", lid: "(max-width: 900px) 46vw, min(24vw, 312px)" };
+  const rows = items.map((it, i) => {
+    const support = it.support ? `\n    <p class="dq-item__support">${esc(it.support)}</p>` : "";
+    return `<li class="dq-item" style="--glow:${it.glow}" data-dq-item>
+  <div class="dq-item__stage" aria-hidden="true">
+    <div class="dq-item__glow"></div>
+    <div class="dq-item__float">
+    ${pairMarkup(it.product, "dq-item", sizes)}
+    </div>
+    <canvas class="dq-item__dust" data-dq-dust></canvas>
   </div>
-</div>
-<div class="dq__copy">
-${copy}
-</div>
-<ol class="dq__nav" aria-label="Destaques">${nav}</ol>`;
+  <div class="dq-item__copy" data-dq-copy>
+    <p class="dq-item__eyebrow"><span class="dq-item__num">${String(i + 1).padStart(2, "0")}</span><span class="eyebrow">${esc(it.eyebrow)}</span></p>
+    <h3 class="dq-item__name" id="dq-name-${i}">${esc(it.title)}</h3>${support}
+    <p class="dq-item__comp">${esc(it.composition)}</p>
+    <p class="dq-item__format">${esc(DESTAQUE_FORMAT)}</p>
+    <a class="btn btn--primary dq-item__cta" href="#revenda" data-pick="${it.flavorId}">Quero revender este sabor</a>
+  </div>
+</li>`;
+  });
+  return `<ol class="dq__list">\n${rows.join("\n")}\n</ol>`;
 }
 
-export interface HeroInitial {
-  line: string;
-  name: string;
-  composition: string;
-  imageSrc: string;
-  imageAlt: string;
-  imageWidth: string;
-  imageHeight: string;
-}
-
-/** Primeiro slide já no HTML (sem JS ainda, o hero não fica vazio). */
-export function heroInitial(): HeroInitial {
+/** Primeiro slide já no HTML (sem JS ainda, o hero não fica vazio): valores dos marcadores {{hero.*}}. */
+export function heroInitial(): Record<string, string> {
   const s = HERO_CONFIG.slides[0]!;
+  if (s.product.kind !== "pair") throw new Error("[hero] o primeiro slide precisa ser uma lata (lata + tampa)");
+  const p = PRODUCTS[s.product.id];
+  const srcset = (sm: string, big: string, w: number) => `/${sm} ${Math.round(w / 2)}w, /${big} ${w}w`;
   return {
-    line: esc(s.line),
-    name: esc(s.name),
-    composition: withPlaceholders(s.composition),
-    imageSrc: `/${s.image.src}`,
-    imageAlt: esc(s.image.alt),
-    imageWidth: String(s.image.width),
-    imageHeight: String(s.image.height),
+    "hero.word": esc(s.word),
+    "hero.line": esc(s.line),
+    "hero.name": esc(s.name),
+    "hero.comp": withPlaceholders(s.composition),
+    "hero.tin": `/${p.tin}`,
+    "hero.tinSrcset": srcset(p.tinSm, p.tin, p.tinPx),
+    "hero.tinPx": String(p.tinPx),
+    "hero.lid": `/${p.lid}`,
+    "hero.lidSrcset": srcset(p.lidSm, p.lid, p.lidPx),
+    "hero.lidPx": String(p.lidPx),
   };
+}
+
+/** Fundo flutuante do hero, em três camadas de profundidade (o movimento fica em hero/floaters.ts). */
+export function renderHeroFloaters(floaters: readonly Floater[] = HERO_CONFIG.floaters): string {
+  const layers = [0, 1, 2].map((depth) => {
+    const items = floaters
+      .filter((f) => f.depth === depth)
+      .map((f, i) => {
+        const m = f.mobile;
+        const vars = [
+          `--x:${f.x}%`,
+          `--y:${f.y}%`,
+          `--s:${f.size}`,
+          `--r:${f.rotate}deg`,
+          `--i:${i}`,
+          ...(m ? [`--mx:${m.x}%`, `--my:${m.y}%`, `--ms:${m.size}`] : []),
+        ].join(";");
+        const cls = m === false ? "fl fl--desk" : "fl";
+        return `<span class="${cls}" style="${vars}"><img src="/${f.src}" width="${f.width}" height="${f.height}" alt="" decoding="async" fetchpriority="low"></span>`;
+      });
+    return `<div class="hero__fl-layer" data-fl-layer="${depth}"><div class="hero__fl-inner">${items.join("")}</div></div>`;
+  });
+  return `<div class="hero__floaters" aria-hidden="true" data-hero-floaters>${layers.join("")}</div>`;
 }
 
 export function renderJsonLd(siteUrl: string): string {

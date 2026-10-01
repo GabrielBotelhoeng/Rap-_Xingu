@@ -1,6 +1,7 @@
 /**
  * Linha completa de sabores. Fonte: tabela do Catálogo em docs/copy.md.
- * Para trocar a foto de um sabor, coloque o arquivo em public/img/latas/ e preencha `photo`.
+ * Para trocar a foto de um sabor, coloque a tampa recortada em public/img/produtos/ (scripts/recortar-fotos.py)
+ * e preencha `photo`.
  */
 export type LineId = "zero-grau" | "xingu" | "joao-de-barro";
 
@@ -25,7 +26,7 @@ export interface Flavor {
   line: LineId;
   /** Composição exatamente como no rótulo. `null` = ainda “[a confirmar]”. */
   composition: string | null;
-  /** Foto provisória da tampa (miniatura do card). Sem foto, o card mostra a latinha provisória. */
+  /** Foto da tampa (miniatura do card). Sem foto, o card mostra a latinha provisória. */
   photo?: Photo;
   /** Cor da latinha provisória enquanto a foto não chega. */
   tint: string;
@@ -44,7 +45,7 @@ export const FLAVORS: readonly Flavor[] = [
     name: "Super Mentolado",
     line: "zero-grau",
     composition: "Fumo, cravo, canela, anis, alecrim, eucalipto e mentol",
-    photo: { src: "/img/latas/super-mentolado.webp", width: 480, height: 480 },
+    photo: { src: "/img/produtos/super-mentolado-tampa-sm.webp", width: 418, height: 418 },
     tint: "#23399E",
     bestSeller: true,
   },
@@ -57,7 +58,7 @@ export const FLAVORS: readonly Flavor[] = [
     name: "Eucaliptu’s Selva",
     line: "xingu",
     composition: "Fumo, eucalipto e mentol",
-    photo: { src: "/img/latas/eucaliptus-selva.webp", width: 480, height: 472 },
+    photo: { src: "/img/produtos/eucaliptus-selva-tampa-sm.webp", width: 423, height: 423 },
     tint: "#2E8C4A",
   },
   { id: "cravo", name: "Cravo", line: "xingu", composition: "Fumo, cravo e mentol", tint: TINT.xingu },
@@ -66,7 +67,7 @@ export const FLAVORS: readonly Flavor[] = [
     name: "Puro Tabaco",
     line: "xingu",
     composition: "Fumo torrado e moído",
-    photo: { src: "/img/latas/puro-tabaco.webp", width: 465, height: 480 },
+    photo: { src: "/img/produtos/puro-tabaco-tampa-sm.webp", width: 426, height: 426 },
     tint: "#5A3418",
   },
   {

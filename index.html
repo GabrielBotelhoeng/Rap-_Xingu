@@ -35,7 +35,8 @@
         if (localStorage.getItem("rx:maioridade")) document.documentElement.dataset.age = "ok";
       } catch (e) {}
     </script>
-    <link rel="preload" as="image" href="{{hero.img}}" fetchpriority="high" />
+    <link rel="preload" as="image" href="{{hero.lid}}" imagesrcset="{{hero.lidSrcset}}" imagesizes="(max-width: 760px) 45vw, 28vmin" fetchpriority="high" />
+    <link rel="preload" as="image" href="{{hero.tin}}" imagesrcset="{{hero.tinSrcset}}" imagesizes="(max-width: 760px) 44vw, 27vmin" fetchpriority="high" />
     <!--@jsonld-->
   </head>
 
@@ -121,15 +122,19 @@
           <div class="hero__layer" data-hero-layer="current"></div>
           <div class="hero__layer hero__layer--next" data-hero-layer="next"></div>
         </div>
+        <!--@hero-floaters-->
         <div class="hero__grain" aria-hidden="true"></div>
         <div class="hero__vignette" aria-hidden="true"></div>
 
         <div class="hero__stage" aria-hidden="true">
-          <div class="hero__word" data-hero-word></div>
+          <div class="hero__word" data-hero-word>{{hero.word}}</div>
           <div class="hero__product">
             <div class="hero__product-move" data-hero-move>
               <div class="hero__product-float" data-hero-float>
-                <img src="{{hero.img}}" width="{{hero.w}}" height="{{hero.h}}" alt="" fetchpriority="high" data-hero-img />
+                <div class="hero__pair" data-hero-pair>
+                  <img class="hero__tin" src="{{hero.tin}}" srcset="{{hero.tinSrcset}}" sizes="(max-width: 760px) 44vw, 27vmin" width="{{hero.tinPx}}" height="{{hero.tinPx}}" alt="" fetchpriority="high" data-hero-tin />
+                  <img class="hero__lid" src="{{hero.lid}}" srcset="{{hero.lidSrcset}}" sizes="(max-width: 760px) 45vw, 28vmin" width="{{hero.lidPx}}" height="{{hero.lidPx}}" alt="" fetchpriority="high" data-hero-lid />
+                </div>
               </div>
             </div>
           </div>
@@ -171,9 +176,9 @@
       <!--@if destaques-->
       <!-- ===================== DESTAQUES (tema Mata) ===================== -->
       <section id="destaques" class="destaques theme-mata" data-header="light" aria-labelledby="destaques-title" data-destaques>
-        <div class="dq" data-dq>
+        <div class="container dq">
           <header class="dq__head">
-            <h2 class="t-display dq__title" id="destaques-title">Os mais pedidos.</h2>
+            <h2 class="dq__title" id="destaques-title">Os mais pedidos.</h2>
           </header>
           <!--@destaques-->
         </div>

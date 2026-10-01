@@ -4,6 +4,7 @@ import {
   renderCatalogCards,
   renderDestaques,
   renderFlavorOptions,
+  renderHeroFloaters,
   renderJsonLd,
 } from "../src/content/render.ts";
 import { DESTAQUES_CONFIG } from "../src/destaques/destaques.config.ts";
@@ -26,9 +27,9 @@ export function contentPlugin({ siteUrl, noindex = false }: Options): Plugin {
     transformIndexHtml: {
       order: "pre",
       handler(html) {
-        const hero = heroInitial();
         const base = siteUrl.replace(/\/$/, "");
         const blocks: Record<string, string> = {
+          "hero-floaters": renderHeroFloaters(),
           "catalog-cards": renderCatalogCards(),
           "flavor-options": renderFlavorOptions(),
           destaques: renderDestaques(),
@@ -36,13 +37,7 @@ export function contentPlugin({ siteUrl, noindex = false }: Options): Plugin {
           robots: noindex ? '<meta name="robots" content="noindex, nofollow" />' : "",
         };
         const values: Record<string, string> = {
-          "hero.line": hero.line,
-          "hero.name": hero.name,
-          "hero.comp": hero.composition,
-          "hero.img": hero.imageSrc,
-          "hero.alt": hero.imageAlt,
-          "hero.w": hero.imageWidth,
-          "hero.h": hero.imageHeight,
+          ...heroInitial(),
           "og.image": base ? `${base}/og.jpg` : "og.jpg",
           "site.url": base ? `${base}/` : "",
         };

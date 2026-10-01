@@ -63,13 +63,16 @@
   pointer-events: none;
 }
 
+/* a palavra fica acima do produto: o JS (placement.ts › stackLayout) dá o font-size e o top
+   de forma que o produto cubra no máximo a base das letras */
 .hero__word {
   position: absolute;
   left: 50%;
-  top: 47%;
+  top: 30%;
   display: flex;
   width: max-content;
   font-family: var(--font-word);
+  font-size: min(22vw, 30svh);
   font-weight: 900;
   line-height: 0.8;
   letter-spacing: -0.01em;
@@ -77,7 +80,11 @@
   white-space: nowrap;
   text-transform: uppercase;
   user-select: none;
-  /* centralização feita pelo GSAP (xPercent/yPercent) */
+  translate: -50% -50%; /* sem JS; com JS o GSAP assume (xPercent/yPercent) */
+}
+
+.hero.is-ready .hero__word {
+  translate: none;
 }
 
 .hero__word .ch {
@@ -85,6 +92,7 @@
   will-change: transform, opacity;
 }
 
+/* o produto: ponto no centro do hero; o .hero__pair se centra nele e gira em volta do próprio centro */
 .hero__product {
   position: absolute;
   left: 50%;
@@ -94,31 +102,130 @@
   z-index: 3;
 }
 
-.hero__product-move {
+.hero__product-move,
+.hero__product-float {
   position: absolute;
   left: 0;
   top: 0;
+  width: 0;
+  height: 0;
   will-change: transform;
 }
 
-.hero__product-float {
-  will-change: transform;
+/* tamanhos e posições em px vêm do JS; os valores abaixo valem sem JS (lata e tampa abertas) */
+.hero__pair {
+  position: absolute;
+  width: min(88vw, 600px);
+  height: calc(min(88vw, 600px) * 0.51);
+  left: calc(min(88vw, 600px) / -2);
+  top: 12svh;
 }
 
-.hero__product img {
+.hero__tin,
+.hero__lid {
+  position: absolute;
+  top: 0;
   display: block;
   max-width: none;
-  width: var(--pw, 380px);
   height: auto;
-  transform: translate(-50%, -50%);
-  filter: drop-shadow(0 34px 34px rgb(0 0 0 / 0.38)) drop-shadow(0 8px 10px rgb(0 0 0 / 0.28));
   user-select: none;
   -webkit-user-drag: none;
+  will-change: transform;
 }
 
-/* sem JS o produto aparece parado no centro */
-.hero:not(.is-ready) .hero__product img {
-  --pw: min(46vmin, 520px);
+.hero__tin {
+  left: 0;
+  width: 49.3%;
+  filter: drop-shadow(0 22px 24px rgb(0 0 0 / 0.36)) drop-shadow(0 6px 8px rgb(0 0 0 / 0.26));
+}
+
+.hero__lid {
+  right: 0;
+  width: 51.2%;
+  filter: drop-shadow(0 26px 28px rgb(0 0 0 / 0.4)) drop-shadow(0 6px 8px rgb(0 0 0 / 0.28));
+}
+
+.hero.is-ready .hero__pair {
+  top: 0;
+}
+
+.hero.is-ready .hero__lid {
+  right: auto;
+}
+
+/* ---------- fundo flutuante (latinhas, folhas e especiarias) ---------- */
+.hero__floaters {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero__fl-layer,
+.hero__fl-inner {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.fl {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: calc(var(--s) * 1vmin);
+  translate: -50% -50%;
+  rotate: var(--r);
+}
+
+.fl img {
+  width: 100%;
+  height: auto;
+  animation: fl-drift calc(9s + var(--i) * 1.7s) var(--ease-in-out) calc(var(--i) * -2.3s) infinite alternate;
+}
+
+/* longe: pequeno, desfocado e bem apagado; perto: maior e mais nítido */
+[data-fl-layer="0"] .fl {
+  opacity: 0.26;
+  filter: blur(1.6px);
+}
+
+[data-fl-layer="1"] .fl {
+  opacity: 0.34;
+  filter: blur(0.6px);
+}
+
+[data-fl-layer="2"] .fl {
+  opacity: 0.45;
+}
+
+[data-fl-layer="1"] .fl img {
+  animation-name: fl-drift-b;
+}
+
+.hero__floaters.is-paused .fl img,
+.hero__floaters.is-still .fl img {
+  animation-play-state: paused;
+}
+
+@keyframes fl-drift {
+  from {
+    transform: translate3d(0, -10px, 0) rotate(-5deg);
+  }
+
+  to {
+    transform: translate3d(6px, 14px, 0) rotate(6deg);
+  }
+}
+
+@keyframes fl-drift-b {
+  from {
+    transform: translate3d(-8px, 12px, 0) rotate(7deg);
+  }
+
+  to {
+    transform: translate3d(4px, -12px, 0) rotate(-4deg);
+  }
 }
 
 .hero__dust {
@@ -404,7 +511,31 @@
 /* ---------- celular e tablet em pé ---------- */
 @media (max-width: 760px), (orientation: portrait) and (max-width: 1100px) {
   .hero__word {
-    top: 30%;
+    top: 26%;
+  }
+
+  /* menos itens, posições próprias e sem desfoque (filter em muitas camadas pesa no celular) */
+  .fl {
+    left: var(--mx, var(--x));
+    top: var(--my, var(--y));
+    width: calc(var(--ms, var(--s)) * 1vmin);
+  }
+
+  .fl--desk {
+    display: none;
+  }
+
+  [data-fl-layer] .fl {
+    filter: none;
+  }
+
+  [data-fl-layer="0"] .fl {
+    opacity: 0.16;
+  }
+
+  .hero__tin,
+  .hero__lid {
+    filter: drop-shadow(0 16px 18px rgb(0 0 0 / 0.4));
   }
 
   .hero__info {

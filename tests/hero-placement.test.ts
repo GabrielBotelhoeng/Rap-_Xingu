@@ -1,90 +1,124 @@
 import { describe, expect, it } from "vitest";
-import { fitVertical, fitWidth, pivotShift } from "../src/hero/placement";
+import {
+  WORD_INK,
+  boxExtents,
+  pairCenters,
+  pairExtents,
+  perWidth,
+  stackLayout,
+  wordVisible,
+  type StackInput,
+} from "../src/hero/placement";
 
-const place = (x: number, size: number) => ({ x, y: 0, rotate: 0, size });
+const PAIR = { lid: 1.04, gap: -0.015 };
 
-describe("pivotShift (giro em volta do centro da caixa, não da imagem)", () => {
-  it("sem giro não desloca", () => {
-    const { dx, dy } = pivotShift(200, 180, 0);
-    expect(dx).toBeCloseTo(0);
-    expect(dy).toBeCloseTo(0);
-  });
-
-  it("bate com o medido no navegador: 187×184 px a 22° → +41 px, −28 px", () => {
-    const { dx, dy } = pivotShift(187, 184, 22);
-    expect(dx).toBeCloseTo(41.3, 0);
-    expect(dy).toBeCloseTo(-28.3, 0);
-  });
-
-  it("giro anti-horário desloca para o outro lado e cresce com o tamanho", () => {
-    const a = pivotShift(100, 100, -8);
-    const b = pivotShift(200, 200, -8);
-    expect(a.dy).toBeGreaterThan(0);
-    expect(b.dx).toBeCloseTo(a.dx * 2);
-    expect(b.dy).toBeCloseTo(a.dy * 2);
+describe("pairCenters (lata e tampa abertas lado a lado)", () => {
+  it("centra a composição em 0 e põe a tampa encostada na lata", () => {
+    const c = pairCenters(PAIR);
+    // da borda esquerda da lata à borda direita da tampa
+    expect(c.tin - 0.5).toBeCloseTo(-c.width / 2);
+    expect(c.lid + PAIR.lid / 2).toBeCloseTo(c.width / 2);
+    // distância entre os centros = soma dos raios + folga
+    expect(c.lid - c.tin).toBeCloseTo(0.5 + PAIR.lid / 2 + PAIR.gap);
   });
 });
 
-describe("fitWidth (produto entre o painel e o seletor)", () => {
-  it("mantém o que já cabe", () => {
-    const p = place(2, 50);
-    expect(fitWidth(p, 54)).toBe(p);
-    expect(fitWidth(p, 80)).toBe(p);
+describe("pairExtents / boxExtents (produto girado)", () => {
+  it("sem giro: metade da tampa para cima e para baixo, metade da largura para os lados", () => {
+    const e = pairExtents(PAIR, 0);
+    expect(e.up).toBeCloseTo(PAIR.lid / 2);
+    expect(e.down).toBeCloseTo(PAIR.lid / 2);
+    expect(e.half).toBeCloseTo(pairCenters(PAIR).width / 2);
   });
 
-  it("encolhe tamanho e deslocamento juntos até caber", () => {
-    const fit = fitWidth(place(9, 36), 50);
-    expect(2 * Math.abs(fit.x) + fit.size).toBeCloseTo(50);
-    expect(fit.x / fit.size).toBeCloseTo(9 / 36);
-    expect(fit.rotate).toBe(0);
+  it("giro horário sobe a lata (esquerda) e desce a tampa (direita)", () => {
+    const e = pairExtents(PAIR, 6);
+    const c = pairCenters(PAIR);
+    const sin = Math.sin((6 * Math.PI) / 180);
+    expect(e.up).toBeCloseTo(0.5 - c.tin * sin);
+    expect(e.down).toBeCloseTo(PAIR.lid / 2 + c.lid * sin);
   });
 
-  it("vale para deslocamento negativo e para largura livre nula", () => {
-    const fit = fitWidth(place(-2, 40), 22);
-    expect(fit.x).toBeLessThan(0);
-    expect(2 * Math.abs(fit.x) + fit.size).toBeCloseTo(22);
-    expect(fitWidth(place(0, 62), -10).size).toBe(0);
+  it("retângulo girado 90° troca largura e altura", () => {
+    const e = boxExtents(2, 1, 90);
+    expect(e.up).toBeCloseTo(1);
+    expect(e.half).toBeCloseTo(0.5);
   });
 
-  it("conta o deslocamento visível do giro, que encolhe junto", () => {
-    // centro visível 8 à direita: 2·8 + 40 = 56 > 50
-    const fit = fitWidth(place(0, 40), 50, 8);
-    const k = fit.size / 40;
-    expect(2 * Math.abs(fit.x + 8 * k) + fit.size).toBeCloseTo(50);
-    // o mesmo produto sem giro cabe
-    expect(fitWidth(place(0, 40), 50)).toEqual(place(0, 40));
+  it("perWidth divide tudo pela largura", () => {
+    expect(perWidth({ up: 1, down: 2, half: 4 }, 2)).toEqual({ up: 0.5, down: 1, half: 2 });
   });
 });
 
-describe("fitVertical (produto acima do painel de textos)", () => {
-  it("não mexe quando a base já cabe", () => {
-    expect(fitVertical(300, 200, { top: 150, bottom: 400 })).toEqual({ cy: 300, scale: 1 });
+const ext = perWidth(pairExtents(PAIR, 0), pairCenters(PAIR).width);
+const base: StackInput = {
+  top: 80,
+  bottom: 820,
+  width: 660,
+  wordAspect: 2.1,
+  maxFont: 380,
+  productWidth: 600,
+  extents: ext,
+  overlap: 0.16,
+  float: 8,
+  minScale: 0.6,
+};
+const inkTopOf = (L: ReturnType<typeof stackLayout>) =>
+  L.wordCy - (WORD_INK.box * L.fontSize) / 2 + WORD_INK.top * L.fontSize;
+const productTopOf = (L: ReturnType<typeof stackLayout>, i: StackInput) => L.productCy - i.extents.up * L.productWidth;
+const productBottomOf = (L: ReturnType<typeof stackLayout>, i: StackInput) => L.productCy + i.extents.down * L.productWidth;
+
+describe("stackLayout (palavra em cima, produto embaixo)", () => {
+  it("a palavra ocupa a largura livre e o produto fica com o tamanho pedido quando cabe", () => {
+    const L = stackLayout(base);
+    expect(L.fontSize * base.wordAspect).toBeCloseTo(660);
+    expect(L.productWidth).toBeCloseTo(600);
   });
 
-  it("sobe até a base caber, se houver espaço em cima", () => {
-    expect(fitVertical(300, 200, { top: 150, bottom: 380 })).toEqual({ cy: 280, scale: 1 });
+  it("o produto cobre no máximo `overlap` da palavra, mesmo no alto da flutuação", () => {
+    for (const input of [base, { ...base, bottom: 560 }, { ...base, top: 64, bottom: 380, width: 360, maxFont: 160 }]) {
+      const L = stackLayout(input);
+      const highest = productTopOf(L, input) - input.float;
+      expect(wordVisible(L, highest)).toBeGreaterThanOrEqual(1 - input.overlap - 1e-6);
+    }
   });
 
-  it("encolhe para caber na faixa quando subir não basta", () => {
-    const fit = fitVertical(300, 200, { top: 190, bottom: 330 });
-    expect(fit.scale).toBeCloseTo(0.7);
-    expect(fit.cy - (200 * fit.scale) / 2).toBeCloseTo(190);
-    expect(fit.cy + (200 * fit.scale) / 2).toBeCloseTo(330);
+  it("a pilha fica dentro da faixa e centrada nela", () => {
+    const L = stackLayout(base);
+    const top = inkTopOf(L);
+    const bottom = productBottomOf(L, base);
+    expect(top).toBeGreaterThanOrEqual(base.top - 1e-6);
+    expect(bottom).toBeLessThanOrEqual(base.bottom + 1e-6);
+    expect(top - base.top).toBeCloseTo(base.bottom - bottom);
   });
 
-  it("não sobe além do topo que a configuração já dava", () => {
-    // topo configurado (150) acima do limite (190): o topo fica, só a base recua
-    const fit = fitVertical(250, 200, { top: 190, bottom: 330 });
-    expect(fit.cy - (200 * fit.scale) / 2).toBeCloseTo(150);
-    expect(fit.cy + (200 * fit.scale) / 2).toBeCloseTo(330);
+  it("sem espaço, encolhe primeiro o produto (até minScale) e mantém a palavra", () => {
+    const tight = { ...base, bottom: 560 };
+    const L = stackLayout(tight);
+    expect(L.fontSize * base.wordAspect).toBeCloseTo(660);
+    expect(L.productWidth).toBeLessThan(600);
+    expect(L.productWidth).toBeGreaterThanOrEqual(600 * base.minScale - 1e-6);
+    expect(productBottomOf(L, tight)).toBeCloseTo(tight.bottom);
   });
 
-  it("aguenta faixa sem espaço e altura zero", () => {
-    // painel acima do topo do produto: não sobra nada
-    expect(fitVertical(300, 200, { top: 400, bottom: 150 }).scale).toBe(0);
-    // faixa invertida: o produto fica entre o próprio topo (200) e o painel (250)
-    const fit = fitVertical(300, 200, { top: 400, bottom: 250 });
-    expect(fit.cy + (200 * fit.scale) / 2).toBeCloseTo(250);
-    expect(fitVertical(300, 0, { top: 0, bottom: 10 })).toEqual({ cy: 300, scale: 1 });
+  it("com muito pouco espaço, encolhe palavra e produto juntos e ainda cabe", () => {
+    const tiny = { ...base, bottom: 300 };
+    const L = stackLayout(tiny);
+    expect(L.fontSize * base.wordAspect).toBeLessThan(660);
+    expect(L.productWidth).toBeLessThan(600 * base.minScale);
+    expect(inkTopOf(L)).toBeGreaterThanOrEqual(tiny.top - 1e-6);
+    expect(productBottomOf(L, tiny)).toBeLessThanOrEqual(tiny.bottom + 1e-6);
+  });
+
+  it("respeita a largura: produto mais largo que a faixa encolhe até caber", () => {
+    const narrow = { ...base, width: 400, productWidth: 900 };
+    const L = stackLayout(narrow);
+    expect(2 * narrow.extents.half * L.productWidth).toBeLessThanOrEqual(400 + 1e-6);
+  });
+
+  it("faixa vazia não quebra", () => {
+    const L = stackLayout({ ...base, top: 500, bottom: 400 });
+    expect(L.fontSize).toBe(0);
+    expect(L.productWidth).toBe(0);
   });
 });
