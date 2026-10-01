@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     },
-    plugins: [contentPlugin({ siteUrl: env.VITE_SITE_URL ?? "" })],
+    plugins: [contentPlugin({ siteUrl: env.VITE_SITE_URL ?? "", noindex: env.VITE_NOINDEX === "1" })],
     build: {
       target: "es2020",
       cssCodeSplit: false,

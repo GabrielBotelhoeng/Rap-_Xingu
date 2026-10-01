@@ -11,6 +11,8 @@ import { DESTAQUES_CONFIG } from "../src/destaques/destaques.config.ts";
 interface Options {
   /** URL pública do site (VITE_SITE_URL), usada no og:image e no JSON-LD. */
   siteUrl: string;
+  /** Prévia (VITE_NOINDEX=1): pede aos buscadores para não indexar a página nem seguir os links. */
+  noindex?: boolean;
 }
 
 /**
@@ -18,7 +20,7 @@ interface Options {
  * Marcadores: <!--@nome--> (blocos) e {{chave}} (valores). Marcador sem valor quebra o build.
  * Blocos <!--@if destaques--> … <!--@endif--> somem quando DESTAQUES_CONFIG.enabled = false.
  */
-export function contentPlugin({ siteUrl }: Options): Plugin {
+export function contentPlugin({ siteUrl, noindex = false }: Options): Plugin {
   return {
     name: "rx-content",
     transformIndexHtml: {
@@ -31,6 +33,7 @@ export function contentPlugin({ siteUrl }: Options): Plugin {
           "flavor-options": renderFlavorOptions(),
           destaques: renderDestaques(),
           jsonld: renderJsonLd(base),
+          robots: noindex ? '<meta name="robots" content="noindex, nofollow" />' : "",
         };
         const values: Record<string, string> = {
           "hero.line": hero.line,

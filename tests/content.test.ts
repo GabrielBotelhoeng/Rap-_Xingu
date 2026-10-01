@@ -104,5 +104,15 @@ describe("plugin de conteúdo", () => {
     expect(out).not.toMatch(/<!--@|\{\{/);
     expect(out).toContain('content="https://exemplo.com.br/og.jpg"');
     expect(out).toContain("Eucaliptu’s Selva");
+    expect(out).not.toContain('name="robots"');
+  });
+
+  it("marca a prévia como noindex só quando pedido (VITE_NOINDEX=1)", async () => {
+    const html = readFileSync(resolve(root, "index.html"), "utf8");
+    const plugin = contentPlugin({ siteUrl: "", noindex: true });
+    const hook = plugin.transformIndexHtml as { handler: IndexHtmlTransformHook };
+    const out = (await hook.handler.call({} as never, html, {} as never)) as string;
+    expect(out).toContain('<meta name="robots" content="noindex, nofollow" />');
+    expect(out.indexOf('name="robots"')).toBeLessThan(out.indexOf("</head>"));
   });
 });
