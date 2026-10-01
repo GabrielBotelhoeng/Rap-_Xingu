@@ -1,8 +1,8 @@
 # Handoff — Landing Rapé Xingu
 
 Estado em **2026-10-01**, fim da 3ª sessão: story 1.2 (hero com fotos padronizadas, destaques redesenhados e
-celular) implementada no branch `feat/1.2-hero-destaques-mobile` e publicada na **prévia** para o usuário revisar.
-O `main` continua na versão aprovada da sessão 2 até o ok dele ("commitar e subir" → fast-forward + push).
+celular) aprovada pelo usuário na prévia ("commitar e subir") e mesclada no `main` (fast-forward de
+`feat/1.2-hero-destaques-mobile`). As decisões listadas na Sessão 3 foram revisadas na prévia sem objeção.
 Leia junto com `PROJETO.md` (spec), `docs/copy.md` (texto oficial) e `docs/stories/1.2.hero-destaques-mobile.story.md`.
 
 ## Como rodar
@@ -94,13 +94,12 @@ rodada, com os melhores modelos.
 
 ## Próximos passos (em ordem)
 
-1. Revisão da prévia pelo usuário (inclusive no celular). Com o ok: fast-forward de `feat/1.2-hero-destaques-mobile` no `main` e push.
-2. Lighthouse mobile (meta ≥ 90 performance e acessibilidade). Candidatos se faltar: `mix-blend-mode` do grão do hero,
+1. Lighthouse mobile (meta ≥ 90 performance e acessibilidade). Candidatos se faltar: `mix-blend-mode` do grão do hero,
    número de itens do fundo flutuante no celular, pré-carregar a fonte da palavra do hero.
-3. Testar em iPhone com Safari real (pin + `100svh` + barra de endereço que encolhe ao rolar).
-4. Gerar `public/og.jpg` (1200×630, latinha sobre fundo mata) — o meta `og:image` já aponta para ele. Definir `VITE_SITE_URL` no deploy.
-5. Deploy (Vercel ou Netlify, estático). Só com o ok do usuário.
-6. Assets do dono: logo original em `assets/brand/`, fotos originais das latas (rodar `scripts/recortar-fotos.py`; o script
+2. Testar em iPhone com Safari real (pin + `100svh` + barra de endereço que encolhe ao rolar).
+3. Gerar `public/og.jpg` (1200×630, latinha sobre fundo mata) — o meta `og:image` já aponta para ele. Definir `VITE_SITE_URL` no deploy.
+4. Deploy (Vercel ou Netlify, estático). Só com o ok do usuário.
+5. Assets do dono: logo original em `assets/brand/`, fotos originais das latas (rodar `scripts/recortar-fotos.py`; o script
    espera lata aberta à esquerda + tampa à direita, vistas de cima, fundo branco), fotos de Tradicional da Aldeia e Pai Vinicius
    (para os destaques), fotos da fábrica, advertência sanitária oficial e dados entre colchetes.
 
