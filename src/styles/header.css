@@ -1,0 +1,259 @@
+.site-header {
+  --h-ink: #f6eedf;
+  --h-bg: transparent;
+  --h-line: transparent;
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: var(--header-h);
+  padding-top: env(safe-area-inset-top, 0px);
+  color: var(--h-ink);
+  background: var(--h-bg);
+  box-shadow: 0 1px 0 var(--h-line);
+  transition:
+    background-color 0.35s,
+    color 0.35s,
+    box-shadow 0.35s,
+    transform 0.45s var(--ease-out);
+}
+
+.site-header[data-tone="dark"] {
+  --h-ink: #2e2119;
+}
+
+.site-header.is-solid[data-tone="light"] {
+  --h-bg: rgb(15 20 15 / 0.72);
+  --h-line: rgb(239 230 214 / 0.08);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+
+.site-header.is-solid[data-tone="dark"] {
+  --h-bg: rgb(239 230 214 / 0.88);
+  --h-line: #d8cbb4;
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+
+.site-header__bar {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* até o logo original chegar (assets/brand/), o nome aparece em Fraunces */
+.brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(20px, 1vw + 12px, 24px);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: inherit;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 2.4vw, 36px);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.site-nav a {
+  position: relative;
+  text-decoration: none;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.site-nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s var(--ease-out);
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current="true"] {
+  opacity: 1;
+}
+
+.site-nav a:hover::after,
+.site-nav a[aria-current="true"]::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.header-cta {
+  --btn-h: 42px;
+  padding: 0 18px;
+  font-size: 14px;
+  color: var(--h-ink);
+  border-color: color-mix(in srgb, var(--h-ink) 55%, transparent);
+  background: transparent;
+}
+
+.header-cta:hover {
+  border-color: var(--h-ink);
+}
+
+.menu-toggle {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.menu-toggle__icon {
+  position: relative;
+  width: 22px;
+  height: 12px;
+}
+
+.menu-toggle__icon::before,
+.menu-toggle__icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform 0.35s var(--ease-out), top 0.35s var(--ease-out);
+}
+
+.menu-toggle__icon::before {
+  top: 2px;
+}
+
+.menu-toggle__icon::after {
+  top: 9px;
+}
+
+.menu-toggle[aria-expanded="true"] .menu-toggle__icon::before {
+  top: 6px;
+  transform: rotate(45deg);
+}
+
+.menu-toggle[aria-expanded="true"] .menu-toggle__icon::after {
+  top: 6px;
+  transform: rotate(-45deg);
+}
+
+/* menu do celular */
+.mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(var(--header-h) + var(--space-6)) var(--gutter) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  background: #0f140f;
+  color: #efe6d6;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 0.35s var(--ease-out),
+    visibility 0s 0.35s;
+}
+
+.mobile-menu.is-open {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.35s var(--ease-out);
+}
+
+.mobile-menu ul {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.mobile-menu a:not(.btn) {
+  display: block;
+  padding: var(--space-2) 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1.1;
+  text-decoration: none;
+}
+
+.mobile-menu .btn {
+  width: 100%;
+}
+
+.mobile-menu__foot {
+  display: grid;
+  gap: var(--space-4);
+  font-size: 13px;
+  color: #a99f8b;
+}
+
+@media (max-width: 900px) {
+  .site-nav,
+  .header-cta {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+}
+
+body.menu-open .site-header {
+  --h-ink: #efe6d6;
+  --h-bg: transparent;
+  --h-line: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ---------- barra fixa de WhatsApp (celular) ---------- */
+.wa-bar {
+  position: fixed;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  display: none;
+  --accent: #9a4a24;
+  --on-accent: #ffffff;
+  --ink: #2e2119;
+  transform: translateY(calc(100% + 24px));
+  transition: transform 0.45s var(--ease-out);
+}
+
+.wa-bar .btn {
+  width: 100%;
+  height: 52px;
+  box-shadow: 0 14px 30px -12px rgb(0 0 0 / 0.5);
+}
+
+.wa-bar.is-visible {
+  transform: none;
+}
+
+@media (max-width: 760px) {
+  .wa-bar {
+    display: block;
+  }
+}

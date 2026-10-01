@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rapé Xingu — Hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Fraunces:opsz,wght@9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6EEDF;
+    --ink: #1C120C;
+    --font-word: "Big Shoulders Display", "Impact", "Arial Narrow", sans-serif;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #1D5C33;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: var(--font-sans); color: var(--paper); background: #1D5C33; -webkit-font-smoothing: antialiased; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    position: relative; width: 100%; height: 100%; min-height: 560px;
+    overflow: hidden; isolation: isolate; touch-action: pan-y;
+  }
+  .bg { position: absolute; inset: 0; z-index: 0; }
+  .bg-layer {
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 95% at var(--cx, 50%) var(--cy, 46%), var(--from) 0%, var(--to) 72%);
+  }
+  .bg-layer.next { clip-path: circle(0% at 50% 50%); }
+  /* grão sutil para o toque artesanal */
+  .grain {
+    position: absolute; inset: -50%; z-index: 1; pointer-events: none; opacity: .16; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(100% 80% at 50% 50%, transparent 55%, rgba(0,0,0,.28) 100%); }
+
+  .stage { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; }
+  .word {
+    position: absolute; left: 50%; top: 47%;
+    font-family: var(--font-word); font-weight: 900; line-height: .8; letter-spacing: -.01em;
+    color: var(--paper); white-space: nowrap; text-transform: uppercase; user-select: none;
+    display: flex; width: max-content;
+  }
+  .word .ch { display: inline-block; will-change: transform, opacity; }
+
+  .product { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 3; }
+  .product-move { position: absolute; left: 0; top: 0; will-change: transform; }
+  .product-float { will-change: transform; }
+  .product img {
+    display: block; width: var(--pw, 380px); height: auto; transform: translate(-50%, -50%);
+    filter: drop-shadow(0 34px 34px rgba(0,0,0,.38)) drop-shadow(0 8px 10px rgba(0,0,0,.28));
+    user-select: none; -webkit-user-drag: none;
+  }
+  canvas.dust { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; pointer-events: none; }
+
+  /* ---------- UI ---------- */
+  .ui { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+  .ui > * { pointer-events: auto; }
+  .topbar {
+    position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between;
+    padding: clamp(16px, 3vw, 32px) clamp(20px, 5vw, 64px); gap: 16px;
+  }
+  .brand { font-family: var(--font-display); font-weight: 600; font-size: clamp(20px, 2vw, 26px); color: var(--paper); text-decoration: none; }
+  .nav { display: flex; align-items: center; gap: clamp(16px, 2.5vw, 36px); font-size: 15px; font-weight: 500; }
+  .nav a { color: var(--paper); text-decoration: none; opacity: .9; }
+  .nav a:not(.pill):hover { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+  .nav .pill { color: var(--ink); opacity: 1; }
+  .pill {
+    display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; border: 0;
+    background: var(--paper); color: var(--ink); font: 600 15px/1 var(--font-sans); text-decoration: none; cursor: pointer;
+  }
+  .pill.ghost { background: transparent; color: var(--paper); box-shadow: inset 0 0 0 1.5px rgba(246,238,223,.7); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--paper); outline-offset: 3px; }
+
+  .info { position: absolute; left: clamp(20px, 5vw, 64px); top: 50%; transform: translateY(-50%); width: min(300px, 26vw); }
+  .info .line { margin: 0 0 6px; font-size: 14px; font-weight: 600; opacity: .85; }
+  .info h1 { margin: 0 0 12px; font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 2.8vw, 40px); line-height: 1.05; }
+  .info .comp { margin: 0 0 24px; font-size: 15px; line-height: 1.6; opacity: .9; max-width: 34ch; }
+  .info .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .picker { position: absolute; right: clamp(20px, 5vw, 64px); top: 50%; transform: translateY(-50%); text-align: right; }
+  .picker p { margin: 0 0 12px; font-size: 14px; font-weight: 600; opacity: .85; }
+  .swatches { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; max-width: 260px; }
+  .swatch {
+    width: 40px; height: 40px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+    background: var(--c); box-shadow: inset 0 0 0 2px rgba(246,238,223,.35), 0 4px 10px rgba(0,0,0,.2);
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .swatch[aria-pressed="true"] { transform: scale(1.12); box-shadow: 0 0 0 3px var(--paper), 0 6px 14px rgba(0,0,0,.25); }
+  .picker .label { margin: 12px 0 0; font-size: 13px; opacity: .8; min-height: 1.2em; }
+
+  .bottombar {
+    position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: clamp(16px, 3vw, 32px) clamp(20px, 5vw, 64px);
+  }
+  .legal { font-size: 12px; opacity: .8; max-width: 22ch; }
+  .progress { flex: 0 1 220px; height: 3px; border-radius: 3px; background: rgba(246,238,223,.25); overflow: hidden; }
+  .progress i { display: block; height: 100%; width: 100%; background: var(--paper); transform-origin: left; transform: scaleX(0); }
+  .more { font-size: 14px; font-weight: 600; color: var(--paper); text-decoration: underline; text-underline-offset: 4px; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---------- MOBILE ---------- */
+  @media (min-width: 761px) and (max-width: 1180px) and (orientation: landscape) {
+    .info { width: min(250px, 24vw); }
+    .info h1 { font-size: 28px; }
+    .info .comp { font-size: 14px; }
+    .swatch { width: 32px; height: 32px; }
+    .swatches { gap: 8px; }
+  }
+
+  /* celular e tablet em pé */
+  @media (max-width: 760px), (orientation: portrait) and (max-width: 1100px) {
+    .nav a:not(.pill) { display: none; }
+    .pill { height: 40px; padding: 0 16px; font-size: 14px; }
+    .word { top: 30%; }
+    .info { left: 20px; right: 20px; top: auto; bottom: 108px; transform: none; width: auto; }
+    .info h1 { font-size: 30px; margin-bottom: 6px; }
+    .info .comp { margin-bottom: 14px; font-size: 14px; }
+    .info .actions .ghost { display: none; }
+    .picker { left: 20px; right: 20px; top: auto; bottom: 56px; transform: none; text-align: left; }
+    .picker p, .picker .label { display: none; }
+    .swatches { justify-content: flex-start; max-width: none; }
+    .swatch { width: 34px; height: 34px; }
+    .bottombar { padding: 0 20px 18px; }
+    .more { display: none; }
+    .legal { max-width: none; }
+  }
+  @media (max-width: 760px) and (max-height: 700px), (max-height: 520px) {
+    .info .comp { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero" id="hero" aria-roledescription="carrossel" aria-label="Sabores Rapé Xingu">
+  <div class="bg" aria-hidden="true">
+    <div class="bg-layer current"></div>
+    <div class="bg-layer next"></div>
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div class="stage" aria-hidden="true">
+    <div class="word" id="word"></div>
+    <div class="product" id="product">
+      <div class="product-move" id="productMove"><div class="product-float" id="productFloat"><img id="productImg" alt=""></div></div>
+    </div>
+  </div>
+  <canvas class="dust" id="dust" aria-hidden="true"></canvas>
+
+  <div class="ui">
+    <header class="topbar">
+      <a class="brand" href="#">Rapé Xingu</a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#catalogo">Catálogo</a>
+        <a href="#fabrica">A fábrica</a>
+        <a class="pill" href="#revenda">Seja revendedor</a>
+      </nav>
+    </header>
+
+    <div class="info" id="info" aria-live="polite">
+      <p class="line" id="infoLine"></p>
+      <h1 id="infoName"></h1>
+      <p class="comp" id="infoComp"></p>
+      <div class="actions">
+        <a class="pill" href="#revenda">Quero revender</a>
+        <a class="pill ghost" href="#catalogo">Ver catálogo</a>
+      </div>
+    </div>
+
+    <div class="picker">
+      <p id="pickerTitle">Escolha o sabor</p>
+      <div class="swatches" id="swatches" role="group" aria-labelledby="pickerTitle"></div>
+      <p class="label" id="pickerLabel"></p>
+    </div>
+
+    <div class="bottombar">
+      <span class="legal">Venda proibida para menores de 18 anos.</span>
+      <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+      <a class="more" href="#catalogo">Ver a linha completa</a>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+/* Caminhos das imagens (pasta img/ ao lado deste arquivo) */
+var IMAGES = {
+  "selva3d": "img/selva-3d.webp",
+  "zero": "img/zero-grau.webp",
+  "puro": "img/puro-tabaco-aberto.webp",
+  "selvaFlat": "img/selva-topo.webp"
+};
+</script>
+<script>
+/* =========================================================================
+   CONFIGURAÇÃO DO HERO — tudo que muda fica aqui
+   -------------------------------------------------------------------------
+   holdSeconds        tempo que cada composição fica parada
+   transitionSeconds  duração da troca (produto + texto + fundo)
+   autoplay           troca sozinha em loop infinito
+   wheelNavigation    rolar o mouse sobre o hero troca o slide
+   tabletScale        multiplica o tamanho do produto em tablets deitados
+   slides[]:
+     word         palavra grande atrás do produto
+     line, name, composition, swatchLabel   textos do painel
+     image        chave em IMAGES (no projeto real: caminho do arquivo)
+     colors       from = centro (luz atrás do produto), to = bordas
+     swatch       cor da bolinha do seletor
+     product      posição final: x / y em % da menor dimensão do hero,
+                  rotate em graus, size = largura em % da menor dimensão
+     mobile       (opcional) sobrescreve product no celular
+     enter        direção de entrada: 'right' | 'left' | 'top' | 'bottom'
+     dust         cor do pó que explode quando o produto pousa
+   ========================================================================= */
+const HERO_CONFIG = {
+  holdSeconds: 1.8,
+  transitionSeconds: 1.15,
+  autoplay: true,
+  wheelNavigation: true,
+  tabletScale: .8,          // reduz o produto em tablets deitados
+  slides: [
+    {
+      word: "Xingu", line: "Linha Xingu", name: "Eucaliptu's Selva",
+      composition: "Fumo, eucalipto e mentol.", swatchLabel: "Eucaliptu's Selva",
+      image: "selva3d", colors: { from: "#46A862", to: "#164D2B" }, swatch: "#3E9A57",
+      product: { x: 2, y: 4, rotate: -8, size: 50 },
+      mobile:  { x: 0, y: -4, rotate: -8, size: 70 },
+      enter: "right", dust: "28,18,10"
+    },
+    {
+      word: "Zero°", line: "Linha Zero Grau", name: "Super Mentolado",
+      composition: "Fumo, cravo, canela, anis, alecrim, eucalipto e mentol.", swatchLabel: "Super Mentolado",
+      image: "zero", colors: { from: "#3A56CC", to: "#0E1A5E" }, swatch: "#23399E",
+      product: { x: -2, y: 5, rotate: 12, size: 40 },
+      mobile:  { x: 0, y: -4, rotate: 12, size: 60 },
+      enter: "top", dust: "10,14,40"
+    },
+    {
+      word: "Puro", line: "Linha Xingu", name: "Puro Tabaco",
+      composition: "Fumo torrado e moído.", swatchLabel: "Puro Tabaco",
+      image: "puro", colors: { from: "#D08A42", to: "#6A3612" }, swatch: "#B8692A",
+      product: { x: 0, y: 8, rotate: -5, size: 62 },
+      mobile:  { x: 0, y: -2, rotate: -5, size: 90 },
+      enter: "left", dust: "46,26,10"
+    },
+    {
+      word: "Raiz", line: "Feito em Alexânia, Goiás", name: "Tabaco, ervas e tempo.",
+      composition: "Há [25] anos a Xingu torra o fumo, mói as ervas e enche cada latinha na própria fábrica.", swatchLabel: "A fábrica",
+      image: "selvaFlat", colors: { from: "#31785D", to: "#0C2E24" }, swatch: "#1E5642",
+      product: { x: 9, y: 4, rotate: 22, size: 36 },
+      mobile:  { x: 2, y: -4, rotate: 22, size: 52 },
+      enter: "bottom", dust: "12,24,18"
+    }
+  ]
+};
+
+/* ================= MOTOR DA ANIMAÇÃO (não precisa mexer) ================= */
+(() => {
+  const C = HERO_CONFIG, S = C.slides;
+  const $ = id => document.getElementById(id);
+  const hero = $("hero"), wordEl = $("word"), img = $("productImg"), move = $("productMove"), flt = $("productFloat"),
+        bar = $("progressBar"), canvas = $("dust"), ctx = canvas.getContext("2d");
+  const layers = { cur: hero.querySelector(".bg-layer.current"), nxt: hero.querySelector(".bg-layer.next") };
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mq = window.matchMedia("(max-width: 760px), (orientation: portrait) and (max-width: 1100px)");
+  const tablet = window.matchMedia("(min-width: 761px) and (max-width: 1180px) and (orientation: landscape)");
+  gsap.set(wordEl, { xPercent: -50, yPercent: -50, x: 0, y: 0 }); // centralização feita pelo GSAP
+  let index = 0, busy = false, pending = null, holdTween = null, floatTween = null, driftTween = null, visible = true;
+
+  // pré-carrega imagens
+  S.forEach(s => { const i = new Image(); i.src = IMAGES[s.image]; });
+
+  const minDim = () => Math.min(hero.clientWidth, hero.clientHeight * (mq.matches ? 1 : 1.25));
+  const pos = s => {
+    const p = { ...s.product, ...(mq.matches && s.mobile ? s.mobile : {}) };
+    if (tablet.matches) p.size *= C.tabletScale;
+    return p;
+  };
+  const px = v => v / 100 * minDim();
+
+  function setBg(layer, s) {
+    layer.style.setProperty("--from", s.colors.from);
+    layer.style.setProperty("--to", s.colors.to);
+  }
+  function placeProduct(s) {
+    const p = pos(s), w = px(p.size);
+    hero.style.setProperty("--pw", w + "px");
+    gsap.set(move, { x: px(p.x), y: px(p.y), rotation: p.rotate, scale: 1, opacity: 1, filter: "blur(0px)" });
+  }
+  function buildWord(s) {
+    wordEl.innerHTML = "";
+    [...s.word].forEach(c => { const sp = document.createElement("span"); sp.className = "ch"; sp.textContent = c; wordEl.appendChild(sp); });
+    fitWord();
+  }
+  function fitWord() {
+    wordEl.style.fontSize = "100px";
+    const w = wordEl.scrollWidth || 1;
+    const targetW = hero.clientWidth * (mq.matches ? .92 : tablet.matches ? .40 : .46);
+    const maxH = hero.clientHeight * (mq.matches ? .30 : .5);
+    wordEl.style.fontSize = Math.min(100 * targetW / w, maxH / .8) + "px";
+  }
+  function setInfo(s) {
+    $("infoLine").textContent = s.line; $("infoName").textContent = s.name; $("infoComp").textContent = s.composition;
+    $("pickerLabel").textContent = s.swatchLabel;
+    swatches.forEach((b, i) => b.setAttribute("aria-pressed", String(i === index)));
+    img.alt = s.name;
+  }
+  function startFloat() {
+    floatTween && floatTween.kill(); driftTween && driftTween.kill();
+    if (reduce) return;
+    gsap.set(flt, { y: 0, rotation: 0 });
+    floatTween = gsap.to(flt, { y: -12, rotation: 1.6, duration: 1.6, ease: "sine.inOut", yoyo: true, repeat: -1 });
+    driftTween = gsap.fromTo(wordEl, { xPercent: -50 }, { xPercent: -51.5, duration: C.holdSeconds + C.transitionSeconds, ease: "none" });
+  }
+
+  // seletor de sabores
+  const swatches = S.map((s, i) => {
+    const b = document.createElement("button");
+    b.className = "swatch"; b.type = "button"; b.style.setProperty("--c", s.swatch);
+    b.setAttribute("aria-label", s.swatchLabel); b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => goTo(i, true));
+    $("swatches").appendChild(b); return b;
+  });
+
+  /* ---------- pó (partículas) ---------- */
+  let parts = [], raf = null;
+  function sizeCanvas() {
+    const r = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = hero.clientWidth * r; canvas.height = hero.clientHeight * r; ctx.setTransform(r, 0, 0, r, 0, 0);
+  }
+  function burst(s) {
+    if (reduce) return;
+    const p = pos(s), cx = hero.clientWidth / 2 + px(p.x), cy = hero.clientHeight / 2 + px(p.y), R = px(p.size) / 2;
+    const n = mq.matches ? 70 : 140;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, d = R * (.55 + Math.random() * .5), sp = 1 + Math.random() * 4.5;
+      const light = Math.random() < .18;
+      parts.push({
+        x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d * .85, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - .6,
+        r: Math.random() < .85 ? .6 + Math.random() * 1.8 : 2.2 + Math.random() * 2.6,
+        life: 0, max: 50 + Math.random() * 70, rgb: light ? "246,238,223" : s.dust, a: light ? .55 : .85
+      });
+    }
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+  function tick() {
+    ctx.clearRect(0, 0, hero.clientWidth, hero.clientHeight);
+    parts = parts.filter(q => q.life < q.max);
+    for (const q of parts) {
+      q.life++; q.vx *= .95; q.vy = q.vy * .95 + .035; q.x += q.vx; q.y += q.vy;
+      const t = q.life / q.max, alpha = q.a * (t < .1 ? t / .1 : 1 - (t - .1) / .9);
+      ctx.fillStyle = `rgba(${q.rgb},${alpha.toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill();
+    }
+    raf = parts.length ? requestAnimationFrame(tick) : null;
+  }
+
+  /* ---------- transição ---------- */
+  const enterVec = { right: [1, -.55], left: [-1, -.45], top: [.35, -1], bottom: [-.3, 1] };
+
+  function goTo(next, manual) {
+    next = (next + S.length) % S.length;
+    if (next === index && !busy) return;
+    if (busy) { pending = next; return; }
+    busy = true; holdTween && holdTween.kill();
+    const from = S[index], to = S[next], T = C.transitionSeconds, pTo = pos(to);
+    const W = hero.clientWidth, H = hero.clientHeight;
+    const [ex, ey] = enterVec[to.enter] || enterVec.right;
+    const pf = pos(from);
+    const ox = 50 + (px(pf.x) / W) * 100, oy = 50 + (px(pf.y) / H) * 100;
+
+    if (reduce) {
+      gsap.to([wordEl, move], { opacity: 0, duration: .25, onComplete: () => {
+        index = next; setBg(layers.cur, to); buildWord(to); placeProduct(to); img.src = IMAGES[to.image]; setInfo(to);
+        gsap.to([wordEl, move], { opacity: 1, duration: .3, onComplete: done });
+      }});
+      return;
+    }
+
+    setBg(layers.nxt, to);
+    const tl = gsap.timeline({ defaults: { ease: "power3.inOut" }, onComplete: done });
+
+    // 1. saída: produto escapa na diagonal oposta, letras sobem em cascata
+    tl.to(move, { x: px(pf.x) - ex * W * .55, y: px(pf.y) - ey * H * .45, rotation: pf.rotate - ex * 38, scale: .72,
+                  filter: "blur(4px)", duration: T * .5, ease: "power3.in" }, 0)
+      .to(wordEl.children, { yPercent: -110, opacity: 0, rotation: -6, duration: T * .42, stagger: T * .04, ease: "power2.in" }, 0)
+      .to("#info > *", { y: -14, opacity: 0, duration: T * .3, stagger: .03, ease: "power2.in" }, 0)
+
+    // 2. fundo: nova cor nasce num círculo a partir do produto
+      .fromTo(layers.nxt, { clipPath: `circle(0% at ${ox}% ${oy}%)` },
+              { clipPath: `circle(150% at ${ox}% ${oy}%)`, duration: T * .75, ease: "power2.inOut" }, T * .12)
+
+    // 3. troca de conteúdo no meio
+      .add(() => {
+        index = next; buildWord(to); setInfo(to); img.src = IMAGES[to.image];
+        const w = px(pTo.size); hero.style.setProperty("--pw", w + "px");
+        gsap.set(move, { x: px(pTo.x) + ex * W * .6, y: px(pTo.y) + ey * H * .5, rotation: pTo.rotate + ex * 40, scale: .7, filter: "blur(6px)" });
+        gsap.set(wordEl, { xPercent: -50 + ex * 6 });
+        gsap.set("#info > *", { y: 16, opacity: 0 });
+        // as letras novas só existem agora, então a entrada delas é criada aqui
+        gsap.fromTo(wordEl.children, { yPercent: 115, opacity: 0, rotation: 5 },
+          { yPercent: 0, opacity: 1, rotation: 0, duration: T * .55, stagger: T * .05, ease: "power3.out", delay: T * .02 });
+      }, T * .5)
+
+    // 4. entrada: letras sobem, palavra desliza, produto pousa girando
+      .to(wordEl, { xPercent: -50, duration: T * .8, ease: "power3.out" }, T * .52)
+      .to(move, { x: px(pTo.x), y: px(pTo.y), rotation: pTo.rotate, scale: 1, filter: "blur(0px)", duration: T * .62, ease: "back.out(1.25)" }, T * .56)
+      .add(() => burst(to), T * 1.02)
+      .to("#info > *", { y: 0, opacity: 1, duration: T * .4, stagger: .05, ease: "power2.out" }, T * .78)
+      .to({}, { duration: 0 }, T * 1.3);
+  }
+
+  function done() {
+    // a camada nova vira a atual
+    setBg(layers.cur, S[index]);
+    gsap.set(layers.nxt, { clipPath: "circle(0% at 50% 50%)" });
+    busy = false; startFloat();
+    if (pending !== null) { const p = pending; pending = null; goTo(p); return; }
+    hold();
+  }
+  function hold() {
+    holdTween && holdTween.kill();
+    gsap.set(bar, { scaleX: 0 });
+    if (!C.autoplay || reduce) return;
+    holdTween = gsap.to(bar, { scaleX: 1, duration: C.holdSeconds, ease: "none", paused: !visible,
+                               onComplete: () => goTo(index + 1) });
+  }
+
+  /* ---------- navegação: clique, teclado, roda do mouse, swipe ---------- */
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") goTo(index + 1, true);
+    if (e.key === "ArrowLeft") goTo(index - 1, true);
+  });
+  let wheelLock = 0;
+  hero.addEventListener("wheel", e => {
+    if (!C.wheelNavigation || Math.abs(e.deltaY) < 12) return;
+    e.preventDefault();
+    const now = performance.now(); if (now < wheelLock) return;
+    wheelLock = now + C.transitionSeconds * 1000 + 150;
+    goTo(index + (e.deltaY > 0 ? 1 : -1), true);
+  }, { passive: false });
+  let sx = null, sy = null;
+  hero.addEventListener("pointerdown", e => { sx = e.clientX; sy = e.clientY; });
+  hero.addEventListener("pointerup", e => {
+    if (sx === null) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) goTo(index + (dx < 0 ? 1 : -1), true);
+  });
+  document.addEventListener("visibilitychange", () => { visible = !document.hidden; holdTween && (visible ? holdTween.resume() : holdTween.pause()); });
+  new IntersectionObserver(([en]) => { visible = en.isIntersecting; holdTween && (visible ? holdTween.resume() : holdTween.pause()); }).observe(hero);
+
+  let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => {
+    sizeCanvas(); fitWord(); if (!busy) placeProduct(S[index]); }, 120); });
+
+  /* ---------- início ---------- */
+  function init() {
+    sizeCanvas();
+    const s = S[0];
+    setBg(layers.cur, s); buildWord(s); placeProduct(s); img.src = IMAGES[s.image]; setInfo(s);
+    if (reduce) { startFloat(); hold(); return; }
+    const p = pos(s), [ex, ey] = enterVec[s.enter];
+    const tl = gsap.timeline({ onComplete: () => { startFloat(); hold(); } });
+    tl.from(wordEl.children, { yPercent: 115, opacity: 0, duration: .8, stagger: .06, ease: "power3.out" }, .1)
+      .from(move, { x: px(p.x) + ex * hero.clientWidth * .6, y: px(p.y) + ey * hero.clientHeight * .5, rotation: p.rotate + 40, scale: .7,
+                    filter: "blur(6px)", duration: .9, ease: "back.out(1.25)" }, .2)
+      .add(() => burst(s), .95)
+      .from("#info > *, .picker, .topbar, .bottombar", { y: 14, opacity: 0, duration: .5, stagger: .05, ease: "power2.out" }, .5);
+  }
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(init);
+})();
+</script>
+</body>
+</html>

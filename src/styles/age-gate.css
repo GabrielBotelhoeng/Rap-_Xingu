@@ -1,0 +1,129 @@
+/* Age gate (+18): primeira tela, cobre tudo antes de qualquer produto aparecer. */
+.age-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  overflow-y: auto;
+  background:
+    radial-gradient(60% 50% at 50% 42%, rgb(212 174 99 / 0.16), transparent 70%),
+    radial-gradient(90% 70% at 50% 110%, rgb(51 71 47 / 0.9), transparent 70%),
+    #0f140f;
+}
+
+.age-gate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: var(--grain);
+}
+
+/* confirmação guardada: o script no <head> marca o <html> antes da pintura */
+html[data-age="ok"] .age-gate {
+  display: none;
+}
+
+html:not([data-age="ok"]) body {
+  overflow: hidden;
+}
+
+.age-gate__card {
+  position: relative;
+  width: min(100%, 460px);
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  padding: clamp(32px, 6vw, 48px) clamp(20px, 5vw, 40px) var(--space-6);
+  border-radius: var(--radius-md);
+  text-align: center;
+  background: var(--grain) repeat, var(--surface-raised);
+  box-shadow:
+    0 40px 80px -40px rgb(0 0 0 / 0.8),
+    0 0 0 1px rgb(212 174 99 / 0.25);
+}
+
+.age-gate__brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.age-gate__eyebrow {
+  color: var(--oliva);
+}
+
+.age-gate__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(28px, 2vw + 20px, 34px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.age-gate__text {
+  max-width: 34ch;
+  color: var(--ink-muted);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.age-gate__ask {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+}
+
+.age-gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.age-gate__denied {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+  padding-block: var(--space-6);
+}
+
+.age-gate__warning {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+.age-gate.is-leaving {
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .age-gate {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .age-gate__card {
+    width: 100%;
+    min-height: 100svh;
+    border-radius: 0;
+    align-content: center;
+  }
+
+  .age-gate__actions .btn {
+    flex: 1 1 100%;
+  }
+}

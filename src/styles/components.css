@@ -1,0 +1,131 @@
+/* ---------- botões: principal accent (no máximo um por tela), secundário contornado ---------- */
+.btn {
+  --btn-h: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--btn-h);
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.25s var(--ease-out),
+    background-color 0.25s,
+    border-color 0.25s,
+    color 0.25s,
+    box-shadow 0.25s;
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+.btn--primary:hover {
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
+  border-color: color-mix(in srgb, var(--accent) 88%, var(--ink));
+}
+
+.btn--secondary {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--ink) 38%, transparent);
+  color: var(--ink);
+}
+
+.btn--secondary:hover {
+  border-color: var(--ink);
+}
+
+.btn--sm {
+  --btn-h: 40px;
+  padding: 0 var(--space-4);
+  font-size: 14px;
+}
+
+.btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- selos ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.badge--accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.badge--oliva {
+  border-color: var(--oliva);
+  color: var(--oliva);
+}
+
+/* ---------- latinha provisória (sem foto ainda) ---------- */
+.tin-ph {
+  --tint: #2f4a2e;
+  position: relative;
+  display: grid;
+  place-content: center;
+  gap: var(--space-1);
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 50%;
+  padding: 18%;
+  text-align: center;
+  color: #f6eedf;
+  background:
+    radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.16), transparent 42%),
+    radial-gradient(circle, var(--tint) 0 63%, transparent 63.5%),
+    conic-gradient(from 210deg, #8a6a2c, #f0d58f, #b18a3f, #6e5220, #e3c37a, #9c7a34, #8a6a2c);
+  box-shadow:
+    inset 0 0 0 2px rgb(0 0 0 / 0.18),
+    0 18px 30px -18px rgb(0 0 0 / 0.55);
+}
+
+.tin-ph::after {
+  content: "";
+  position: absolute;
+  inset: 9%;
+  border-radius: 50%;
+  border: 1px solid rgb(246 238 223 / 0.18);
+}
+
+.tin-ph__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(15px, 1.1vw + 8px, 22px);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.tin-ph__note {
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}

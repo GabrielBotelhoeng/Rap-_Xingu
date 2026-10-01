@@ -1,0 +1,753 @@
+/* ============ Catálogo (Terra) ============ */
+.catalogo__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  align-items: end;
+  gap: var(--space-5) var(--space-8);
+  margin-bottom: var(--space-7);
+}
+
+.catalogo__eyebrow,
+.fabrica__eyebrow,
+.revenda__eyebrow {
+  margin-bottom: var(--space-4);
+  color: var(--oliva);
+}
+
+.catalogo__intro {
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 28px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.filter {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    color 0.25s,
+    border-color 0.25s;
+}
+
+.filter:hover {
+  border-color: var(--ink);
+}
+
+.filter[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface-raised);
+}
+
+.catalogo__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  transition:
+    transform 0.5s var(--ease-out),
+    box-shadow 0.5s var(--ease-out),
+    border-color 0.3s;
+}
+
+.card[hidden] {
+  display: none;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--ouro) 70%, var(--line));
+  box-shadow: 0 24px 40px -28px rgb(46 33 25 / 0.45);
+}
+
+.card__tin {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 10%;
+  border-radius: calc(var(--radius-md) - 4px);
+  background: radial-gradient(circle at 50% 46%, rgb(255 255 255 / 0.65), transparent 64%);
+}
+
+.card__photo,
+.card__ph {
+  width: 100%;
+  height: auto;
+  transition: transform 0.7s var(--ease-out);
+}
+
+.card__photo {
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 18px rgb(46 33 25 / 0.35)) drop-shadow(0 3px 4px rgb(46 33 25 / 0.3));
+}
+
+/* a tampa gira um pouco, como quem vai abrir a latinha */
+.card:hover .card__photo,
+.card:hover .card__ph {
+  transform: rotate(-12deg) scale(1.03);
+}
+
+.card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+}
+
+.card__comp {
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.card__cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.card__cta .icon {
+  transition: transform 0.3s var(--ease-out);
+}
+
+.card:hover .card__cta .icon {
+  transform: translateX(4px);
+}
+
+@media (max-width: 760px) {
+  .catalogo__head {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* celular: card deitado (miniatura à esquerda) para a grade não ficar quilométrica */
+@media (max-width: 520px) {
+  .catalogo__grid {
+    gap: var(--space-3);
+  }
+
+  .card {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3);
+  }
+
+  .card__tin {
+    padding: 4px;
+  }
+
+  .card__name {
+    font-size: 20px;
+    line-height: 24px;
+  }
+
+  .card__cta {
+    padding-top: var(--space-1);
+  }
+
+  .tin-ph__note {
+    display: none;
+  }
+
+  .tin-ph__name {
+    font-size: 12px;
+  }
+}
+
+/* ============ A fábrica (Terra) ============ */
+.fabrica__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.fabrica__text {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.fabrica__text .t-display {
+  margin-bottom: var(--space-2);
+}
+
+.fabrica__text p {
+  max-width: 54ch;
+  font-size: 17px;
+  line-height: 28px;
+}
+
+.fabrica__nums {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--line);
+}
+
+.fabrica__nums div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+}
+
+.fabrica__nums dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(36px, 2vw + 24px, 52px);
+  line-height: 1;
+  color: var(--accent);
+}
+
+.fabrica__nums dt {
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.fabrica__media {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, auto);
+  gap: var(--space-4);
+}
+
+.ph-photo {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ph-photo--a {
+  grid-column: 1 / 5;
+}
+
+.ph-photo--b {
+  grid-column: 5 / 7;
+  align-self: end;
+}
+
+.ph-photo--c {
+  grid-column: 2 / 6;
+}
+
+.ph-photo__frame {
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px dashed color-mix(in srgb, var(--ink) 30%, transparent);
+  background:
+    repeating-linear-gradient(-45deg, rgb(46 33 25 / 0.035) 0 1px, transparent 1px 10px),
+    var(--surface-raised);
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.ph-photo--a .ph-photo__frame {
+  aspect-ratio: 4 / 3;
+}
+
+.ph-photo--b .ph-photo__frame {
+  aspect-ratio: 3 / 4;
+}
+
+.ph-photo--c .ph-photo__frame {
+  aspect-ratio: 16 / 9;
+}
+
+.ph-photo figcaption {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.still {
+  position: absolute;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 18px 18px rgb(46 33 25 / 0.35)) drop-shadow(0 3px 3px rgb(46 33 25 / 0.3));
+}
+
+.still--canela {
+  width: clamp(54px, 7vw, 92px);
+  right: 3%;
+  bottom: 4%;
+  rotate: 64deg;
+}
+
+.still--cravo {
+  width: clamp(26px, 3vw, 38px);
+  right: 17%;
+  bottom: -2%;
+  rotate: -24deg;
+}
+
+.still--eucalipto {
+  width: clamp(70px, 9vw, 120px);
+  left: -5%;
+  top: -9%;
+  rotate: -52deg;
+}
+
+@media (max-width: 900px) {
+  .fabrica__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .fabrica__nums {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ============ Seja revendedor (Terra) ============ */
+.revenda {
+  background: var(--grain) repeat, linear-gradient(180deg, var(--surface), #e8dcc6);
+}
+
+.revenda__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.revenda__intro {
+  display: grid;
+  gap: var(--space-5);
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-6));
+}
+
+.revenda__sub {
+  max-width: 40ch;
+  color: var(--ink-muted);
+  font-size: 18px;
+  line-height: 28px;
+}
+
+.beneficios {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-3);
+}
+
+.beneficios li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.beneficios__n {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 26px;
+  color: var(--accent);
+}
+
+.beneficios h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 26px;
+  margin-bottom: var(--space-1);
+}
+
+.beneficios p {
+  color: var(--ink-muted);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.form-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  padding: clamp(20px, 3vw, 40px);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  box-shadow: 0 40px 70px -50px rgb(46 33 25 / 0.55);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+}
+
+.field--full {
+  grid-column: 1 / -1;
+}
+
+.field label,
+.field legend {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.field label span {
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.field input {
+  height: 48px;
+  width: 100%;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, var(--line));
+  background: #fffdf8;
+  font-size: 16px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.field input::placeholder {
+  color: color-mix(in srgb, var(--ink-muted) 75%, transparent);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.field input[aria-invalid="true"] {
+  border-color: #a3341f;
+}
+
+.field__error {
+  min-height: 18px;
+  font-size: 13px;
+  line-height: 18px;
+  color: #a3341f;
+}
+
+fieldset.field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.chips__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: 6px;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.chip input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.chip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.chip:hover span {
+  border-color: var(--ink);
+}
+
+.chip input:checked + span {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chip input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.revenda__submit {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 54px;
+  margin-top: var(--space-2);
+  font-size: 16px;
+}
+
+.revenda__success {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--oliva) 14%, transparent);
+  color: var(--oliva);
+  font-weight: 600;
+}
+
+.revenda__success[hidden] {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .revenda__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  .revenda__intro {
+    position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  .form-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============ FAQ (Terra) ============ */
+.faq__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.faq__list {
+  border-top: 1px solid var(--line);
+}
+
+.faq__item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq__item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(19px, 0.6vw + 15px, 24px);
+  line-height: 1.25;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq__item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq__item summary::after {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% 1.5px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 1.5px 100% no-repeat;
+  transition: transform 0.35s var(--ease-out);
+}
+
+.faq__item[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.faq__item p {
+  max-width: 60ch;
+  padding: 0 0 var(--space-5);
+  color: var(--ink-muted);
+}
+
+@media (max-width: 900px) {
+  .faq__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+}
+
+/* ============ Rodapé (campo mata) ============ */
+.site-footer {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-9) 0 calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  background: var(--mata);
+  color: var(--on-mata);
+}
+
+.site-footer__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--space-7);
+  padding-bottom: var(--space-7);
+}
+
+.site-footer__brand .wordmark {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.site-footer__brand .slogan {
+  margin-top: var(--space-2);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--ouro);
+}
+
+.site-footer__cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.site-footer__cols p + p {
+  margin-top: var(--space-2);
+}
+
+.site-footer a {
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.site-footer__cols a {
+  white-space: nowrap;
+}
+
+.site-footer a:hover {
+  text-decoration-color: currentColor;
+}
+
+.site-footer__nav {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.site-footer__nav a {
+  text-decoration: none;
+}
+
+.site-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid color-mix(in srgb, var(--ouro) 70%, transparent);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.site-footer__giant {
+  margin-top: var(--space-7);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(64px, 15.5vw, 236px);
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--on-mata) 9%, transparent);
+  user-select: none;
+}
+
+@media (max-width: 900px) {
+  .site-footer__top,
+  .site-footer__cols {
+    grid-template-columns: 1fr;
+  }
+
+  .site-footer {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
