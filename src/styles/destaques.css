@@ -111,12 +111,14 @@
   filter: drop-shadow(0 34px 40px rgb(0 0 0 / 0.6)) drop-shadow(0 6px 10px rgb(0 0 0 / 0.4));
 }
 
+/* escondido por visibility (não hidden/display): o canvas mantém o tamanho para o resize() medir */
 .dq__seq {
   position: absolute;
   inset: -40%;
   width: 180%;
   height: 180%;
   max-width: none;
+  visibility: hidden;
 }
 
 .dq__lid {
@@ -243,19 +245,21 @@
   display: block;
 }
 
+/* os textos dos sabores ficam empilhados na mesma célula do grid: a linha reserva a altura do maior
+   (nada invade a nav nem sai da tela) e o centro não depende de translate — o GSAP converte o
+   translate do CSS em transform e só reconhece o -50% por arredondamento da altura */
 .destaques.is-animated .dq__copy {
+  position: relative;
+  z-index: 20; /* acima da névoa e das ervas */
   grid-column: 1;
   grid-row: 2;
   align-self: center;
-  min-height: 380px;
+  display: grid;
 }
 
 .destaques.is-animated .dq__item {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  translate: 0 -50%;
+  grid-area: 1 / 1;
+  align-self: center;
   visibility: hidden;
 }
 
@@ -305,22 +309,23 @@
     font-size: 30px;
   }
 
+  /* o palco fica com a sobra da linha (a altura dos textos já está reservada embaixo);
+     92% deixa folga para as ervas, que se afastam da lata ao abrir */
   .destaques.is-animated .dq__stage {
     grid-column: 1;
     grid-row: 2;
-    width: min(88vw, 44svh);
+    width: auto;
+    height: min(92%, 88vw, 520px);
     justify-self: center;
   }
 
   .destaques.is-animated .dq__copy {
     grid-row: 3;
-    min-height: 236px;
   }
 
+  /* encostados embaixo: o botão fica sempre no mesmo lugar ao trocar de sabor */
   .destaques.is-animated .dq__item {
-    top: auto;
-    bottom: 0;
-    translate: none;
+    align-self: end;
     gap: var(--space-2);
   }
 
@@ -346,14 +351,19 @@
   .destaques.is-animated .dq__comp {
     display: none;
   }
-
-  .destaques.is-animated .dq__copy {
-    min-height: 196px;
-  }
 }
 
-/* sabor com frame-sequence: o canvas assume o lugar da lata + tampa */
-.dq__stage.uses-seq .dq__base,
+/* sabor com frame-sequence: o canvas assume o lugar da lata + tampa.
+   A lata some por visibility porque é ela que dá a altura da caixa (o canvas tem 180% dela);
+   a tampa pode sair do layout, mas não por visibility: o autoAlpha do GSAP a reescreve inline */
+.dq__stage.uses-seq .dq__seq {
+  visibility: visible;
+}
+
+.dq__stage.uses-seq .dq__base {
+  visibility: hidden;
+}
+
 .dq__stage.uses-seq .dq__lid {
   display: none;
 }

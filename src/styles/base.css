@@ -30,6 +30,13 @@ video {
   max-width: 100%;
 }
 
+/* o atributo hidden sempre vence. Sem isto, qualquer display do CSS o anulava: a pergunta do age gate
+   (display: grid) continuava na tela depois do "Não, sair", o botão de pausa do hero aparecia sem
+   autoplay e o canvas vazio da frame-sequence (canvas { display: block }) nunca saía */
+[hidden] {
+  display: none !important;
+}
+
 h1,
 h2,
 h3,
@@ -169,7 +176,10 @@ textarea {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /* 0s, não 0.01ms: transition-property vale `all` por padrão, então qualquer duração > 0 criava uma
+       transição em toda mudança de estilo da página — e quem mede logo depois de mudar um estilo
+       (o fitWord do hero) lia o valor antigo: a palavra do hero saía gigante, cobrindo o painel */
+    transition-duration: 0s !important;
     scroll-behavior: auto !important;
   }
 }

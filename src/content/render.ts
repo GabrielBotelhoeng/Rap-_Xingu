@@ -126,7 +126,7 @@ export function renderDestaques(items: readonly DestaqueItem[] = DESTAQUES_CONFI
   ${herbs}
   <div class="dq__tin">
     <img class="dq__base" src="${tin.src}" width="${tin.width}" height="${tin.height}" alt="" loading="lazy" decoding="async">
-    <canvas class="dq__seq" data-dq-seq hidden></canvas>
+    <canvas class="dq__seq" data-dq-seq></canvas>
     ${lids}
   </div>
 </div>

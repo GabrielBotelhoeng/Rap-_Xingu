@@ -24,13 +24,17 @@ export function initHeader(lenis: Lenis | null): void {
 
   // fundo translúcido só depois do hero (sobre o hero o header fica transparente)
   // (o pin embrulha o hero num .pin-spacer, então nextElementSibling não serve)
+  // decide pelo progresso, não por isActive: no fim da página (progress 1) o trigger fica inativo
+  // e o header perdia o fundo por cima do FAQ; onRefresh cobre quem recarrega já rolado
   const afterHero = document.querySelectorAll("main section[data-header]")[1];
   if (afterHero) {
+    const solid = (self: ScrollTrigger) => header.classList.toggle("is-solid", self.progress > 0);
     ScrollTrigger.create({
       trigger: afterHero,
       start: "top top",
       end: "max",
-      onToggle: (self) => header.classList.toggle("is-solid", self.isActive),
+      onToggle: solid,
+      onRefresh: solid,
     });
   }
 

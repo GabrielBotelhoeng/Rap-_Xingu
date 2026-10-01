@@ -11,6 +11,7 @@ import { scrollStep, wrapIndex } from "@/lib/progress";
 import { setRichText } from "@/lib/dom";
 import { HERO_CONFIG, type EnterFrom, type HeroPlacement, type HeroSlide } from "./hero.config";
 import { createDust } from "./dust";
+import { fitVertical, fitWidth, pivotShift } from "./placement";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,6 +19,13 @@ const asset = (src: string) => `${import.meta.env.BASE_URL}${src}`;
 
 const MQ_MOBILE = "(max-width: 760px), (orientation: portrait) and (max-width: 1100px)";
 const MQ_TABLET = "(min-width: 761px) and (max-width: 1180px) and (orientation: landscape)";
+
+/** Desktop: folga entre a palavra/produto e o painel de textos ou o seletor (px). */
+const SIDE_GAP = 24;
+/** Celular: folga entre a base do produto e o painel de textos (px). */
+const PANEL_GAP = 8;
+/** Celular: fração de cima da palavra que o produto não cobre quando precisa subir. */
+const WORD_VISIBLE = 0.35;
 
 /** direção de entrada → vetor (a saída usa o oposto) */
 const ENTER_VEC: Record<EnterFrom, [number, number]> = {
@@ -54,7 +62,8 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   const pauseBtn = $<HTMLButtonElement>("[data-hero-pause]");
   const layers = { cur: $("[data-hero-layer='current']"), nxt: $("[data-hero-layer='next']") };
   const infoItems = Array.from(info.querySelectorAll<HTMLElement>("[data-hero-item]"));
-  const fadeIns = [...infoItems, $(".hero__picker"), $(".hero__bottom")];
+  const picker = $(".hero__picker");
+  const fadeIns = [...infoItems, picker, $(".hero__bottom")];
   const dust = createDust($<HTMLCanvasElement>("[data-hero-dust]"), root);
 
   const mq = matchMedia(MQ_MOBILE);
@@ -84,12 +93,36 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   gsap.set(wordEl, { xPercent: -50, yPercent: -50, x: 0, y: 0 }); // centralização feita pelo GSAP
 
   const minDim = () => Math.min(root.clientWidth, root.clientHeight * (mq.matches ? 1 : 1.25));
+  const px = (v: number) => (v / 100) * minDim();
+
+  /** Desktop/tablet deitado: largura livre no centro, entre o painel de textos e o seletor. */
+  function freeWidth(): number {
+    const box = root.getBoundingClientRect();
+    const left = info.getBoundingClientRect().right - box.left;
+    const right = box.right - picker.getBoundingClientRect().left;
+    return Math.max(0, box.width - 2 * (Math.max(left, right) + SIDE_GAP));
+  }
+
+  /** Posição do produto na tela atual: a do config, encolhida ou erguida só se não couber.
+      No celular depende do texto do painel e da palavra que estão no DOM — chame depois de setInfo/buildWord. */
   const pos = (s: HeroSlide): HeroPlacement => {
     const p = { ...s.product, ...(mq.matches && s.mobile ? s.mobile : {}) };
     if (tablet.matches) p.size *= C.tabletScale;
-    return p;
+    const w = px(p.size);
+    const h = w * (s.image.height / s.image.width);
+    const shift = pivotShift(w, h, p.rotate); // o giro também tira a imagem do lugar (ver placement.ts)
+    if (!mq.matches) return fitWidth(p, (freeWidth() / minDim()) * 100, (shift.dx / minDim()) * 100);
+
+    const box = root.getBoundingClientRect();
+    const word = wordEl.getBoundingClientRect();
+    const half = root.clientHeight / 2;
+    const fit = fitVertical(half + px(p.y) + shift.dy, h, {
+      top: word.top - box.top + word.height * WORD_VISIBLE,
+      bottom: info.getBoundingClientRect().top - box.top - PANEL_GAP,
+    });
+    // fit.cy é o centro visível; o y do GSAP é o de antes do giro (o shift encolhe junto com a escala)
+    return { ...p, size: p.size * fit.scale, y: ((fit.cy - shift.dy * fit.scale - half) / minDim()) * 100 };
   };
-  const px = (v: number) => (v / 100) * minDim();
   const blurOn = () => !mq.matches; // blur animado pesa no celular
 
   function setBg(layer: HTMLElement, s: HeroSlide) {
@@ -106,7 +139,9 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   function fitWord() {
     wordEl.style.fontSize = "100px";
     const w = wordEl.scrollWidth || 1;
-    const targetW = root.clientWidth * (mq.matches ? 0.92 : tablet.matches ? 0.4 : 0.46);
+    const W = root.clientWidth;
+    // desktop: a palavra também não invade o painel de textos (entre 1180 e 1440 px encostava)
+    const targetW = mq.matches ? W * 0.92 : Math.min(W * (tablet.matches ? 0.4 : 0.46), freeWidth());
     const maxH = root.clientHeight * (mq.matches ? 0.3 : 0.5);
     wordEl.style.fontSize = `${Math.min((100 * targetW) / w, maxH / 0.8)}px`;
   }
@@ -197,8 +232,8 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
     const from = slide(index);
     const to = slide(next);
     const T = C.transitionSeconds;
-    const pTo = pos(to);
     const pf = pos(from);
+    let pTo = pos(to); // no celular é refeito na troca de conteúdo, com o texto novo no painel
     const W = root.clientWidth;
     const H = root.clientHeight;
     const [ex, ey] = ENTER_VEC[to.enter];
@@ -214,9 +249,9 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
           index = next;
           setBg(layers.cur, to);
           buildWord(to);
-          placeProduct(to);
-          setImage(to);
           setInfo(to);
+          placeProduct(to); // depois do texto novo: no celular a posição depende dele
+          setImage(to);
           gsap.to([wordEl, move, ...infoItems], { opacity: 1, duration: 0.3, onComplete: done });
         },
       });
@@ -257,6 +292,7 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
         buildWord(to);
         setInfo(to);
         setImage(to);
+        pTo = pos(to);
         root.style.setProperty("--pw", `${px(pTo.size)}px`);
         gsap.set(move, {
           x: px(pTo.x) + ex * W * 0.6,
@@ -277,9 +313,18 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
 
       // 4. entrada: letras sobem, palavra desliza, produto pousa girando
       .to(wordEl, { xPercent: -50, duration: T * 0.8, ease: "power3.out" }, T * 0.52)
+      // valores em função: o GSAP só os lê quando o tween começa, depois do pTo refeito no passo 3
       .to(
         move,
-        { x: px(pTo.x), y: px(pTo.y), rotation: pTo.rotate, scale: 1, filter: "blur(0px)", duration: T * 0.62, ease: "back.out(1.25)" },
+        {
+          x: () => px(pTo.x),
+          y: () => px(pTo.y),
+          rotation: () => pTo.rotate,
+          scale: 1,
+          filter: "blur(0px)",
+          duration: T * 0.62,
+          ease: "back.out(1.25)",
+        },
         T * 0.56,
       )
       .add(() => burst(to), T * 1.02)
@@ -332,7 +377,8 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   }
 
   /* ---------- pausa (WCAG 2.2.2) ---------- */
-  if (reducedMotion || !C.autoplay) pauseBtn.hidden = true;
+  // sem autoplay não há o que pausar nem progresso para mostrar
+  if (reducedMotion || !C.autoplay) $(".hero__timer").hidden = true;
   pauseBtn.addEventListener("click", () => {
     userPaused = !userPaused;
     pauseBtn.setAttribute("aria-pressed", String(userPaused));
@@ -423,8 +469,8 @@ export function initHero(root: HTMLElement, { reducedMotion }: { reducedMotion: 
   const first = slide(0);
   setBg(layers.cur, first);
   buildWord(first);
-  placeProduct(first);
   setInfo(first);
+  placeProduct(first); // depois da palavra e do painel: no celular a posição depende dos dois
   root.classList.add("is-ready");
   if (!reducedMotion) {
     gsap.set(wordEl.children, { yPercent: 115, opacity: 0 });

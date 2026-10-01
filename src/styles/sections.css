@@ -42,8 +42,11 @@
     border-color 0.25s;
 }
 
-.filter:hover {
-  border-color: var(--ink);
+/* hover só onde existe ponteiro: no toque ele gruda depois do toque e confunde o estado */
+@media (hover: hover) {
+  .filter:hover {
+    border-color: var(--ink);
+  }
 }
 
 .filter[aria-pressed="true"] {
@@ -73,16 +76,6 @@
     border-color 0.3s;
 }
 
-.card[hidden] {
-  display: none;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  border-color: color-mix(in srgb, var(--ouro) 70%, var(--line));
-  box-shadow: 0 24px 40px -28px rgb(46 33 25 / 0.45);
-}
-
 .card__tin {
   display: grid;
   place-items: center;
@@ -103,12 +96,6 @@
   aspect-ratio: 1;
   object-fit: contain;
   filter: drop-shadow(0 16px 18px rgb(46 33 25 / 0.35)) drop-shadow(0 3px 4px rgb(46 33 25 / 0.3));
-}
-
-/* a tampa gira um pouco, como quem vai abrir a latinha */
-.card:hover .card__photo,
-.card:hover .card__ph {
-  transform: rotate(-12deg) scale(1.03);
 }
 
 .card__body {
@@ -161,8 +148,22 @@
   transition: transform 0.3s var(--ease-out);
 }
 
-.card:hover .card__cta .icon {
-  transform: translateX(4px);
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--ouro) 70%, var(--line));
+    box-shadow: 0 24px 40px -28px rgb(46 33 25 / 0.45);
+  }
+
+  /* a tampa gira um pouco, como quem vai abrir a latinha */
+  .card:hover .card__photo,
+  .card:hover .card__ph {
+    transform: rotate(-12deg) scale(1.03);
+  }
+
+  .card:hover .card__cta .icon {
+    transform: translateX(4px);
+  }
 }
 
 @media (max-width: 760px) {
@@ -498,6 +499,11 @@ fieldset.field {
   border: 0;
 }
 
+/* o navegador dá 2px de recuo à legenda; aqui ela alinha com os outros rótulos */
+fieldset.field legend {
+  padding: 0;
+}
+
 .chips__list {
   display: flex;
   flex-wrap: wrap;
@@ -534,8 +540,11 @@ fieldset.field {
     color 0.2s;
 }
 
-.chip:hover span {
-  border-color: var(--ink);
+/* no toque, o hover grudado deixava o sabor desmarcado com cara de marcado */
+@media (hover: hover) {
+  .chip:hover span {
+    border-color: var(--ink);
+  }
 }
 
 .chip input:checked + span {
@@ -567,10 +576,6 @@ fieldset.field {
   background: color-mix(in srgb, var(--oliva) 14%, transparent);
   color: var(--oliva);
   font-weight: 600;
-}
-
-.revenda__success[hidden] {
-  display: none;
 }
 
 @media (max-width: 900px) {

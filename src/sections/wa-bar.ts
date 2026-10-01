@@ -1,14 +1,16 @@
-/** Barra fixa de WhatsApp no celular: aparece depois do hero e some na seção do formulário
-    (lá o botão principal é "Enviar pelo WhatsApp" — um botão principal por tela). */
+/** Barra fixa de WhatsApp no celular: some nas seções que já têm o botão principal da tela
+    (hero, destaques e formulário — um botão principal por tela). Nos destaques ela também
+    cobria o "Quero revender este sabor", que fica no pé da seção presa. */
 export function initWaBar(): void {
   const bar = document.querySelector<HTMLElement>("[data-wa-bar]");
-  const hero = document.querySelector<HTMLElement>("#inicio");
-  const revenda = document.querySelector<HTMLElement>("#revenda");
   if (!bar) return;
+  const ownCta = ["#inicio", "#destaques", "#revenda"]
+    .map((sel) => document.querySelector<HTMLElement>(sel))
+    .filter((el): el is HTMLElement => el !== null);
 
-  const seen = new Map<Element, boolean>();
+  const seen = new Map<Element, boolean>(ownCta.map((el) => [el, true]));
   const update = () => {
-    const show = !seen.get(hero as Element) && !seen.get(revenda as Element);
+    const show = ![...seen.values()].some(Boolean);
     bar.classList.toggle("is-visible", show);
     bar.inert = !show;
   };
@@ -20,10 +22,6 @@ export function initWaBar(): void {
     },
     { rootMargin: "0px 0px -20% 0px" },
   );
-  [hero, revenda].forEach((el) => {
-    if (!el) return;
-    seen.set(el, true);
-    io.observe(el);
-  });
+  ownCta.forEach((el) => io.observe(el));
   update();
 }

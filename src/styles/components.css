@@ -34,19 +34,22 @@
   box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--accent) 80%, transparent);
 }
 
-.btn--primary:hover {
-  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
-  border-color: color-mix(in srgb, var(--accent) 88%, var(--ink));
-}
-
 .btn--secondary {
   background: transparent;
   border-color: color-mix(in srgb, var(--ink) 38%, transparent);
   color: var(--ink);
 }
 
-.btn--secondary:hover {
-  border-color: var(--ink);
+/* hover só com ponteiro: no toque ele gruda depois do toque */
+@media (hover: hover) {
+  .btn--primary:hover {
+    background: color-mix(in srgb, var(--accent) 88%, var(--ink));
+    border-color: color-mix(in srgb, var(--accent) 88%, var(--ink));
+  }
+
+  .btn--secondary:hover {
+    border-color: var(--ink);
+  }
 }
 
 .btn--sm {

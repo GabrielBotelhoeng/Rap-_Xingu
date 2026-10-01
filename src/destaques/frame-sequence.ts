@@ -22,6 +22,8 @@ export class FrameSequence {
   private current = -1;
   private wanted = 0;
   private queued = false;
+  /** O canvas é um só para todos os sabores: só a sequência do sabor na tela desenha nele. */
+  private active = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -72,10 +74,22 @@ export class FrameSequence {
     this.request(this.wanted);
   }
 
+  /**
+   * Liga ou desliga o desenho. Inativa, a sequência continua carregando, mas não desenha — sem isto
+   * os frames de outro sabor que terminavam de carregar apareciam por cima do sabor na tela.
+   * Ao voltar a ser a ativa, redesenha mesmo que o frame seja o mesmo: o canvas pode estar com o de outro.
+   */
+  setActive(on: boolean): void {
+    this.active = on;
+    if (!on) return;
+    this.current = -1;
+    this.request(this.wanted);
+  }
+
   /** Pede um frame; o desenho acontece no próximo requestAnimationFrame. */
   request(index: number): void {
     this.wanted = Math.min(this.set.count - 1, Math.max(0, index));
-    if (this.queued) return;
+    if (!this.active || this.queued) return;
     this.queued = true;
     requestAnimationFrame(() => {
       this.queued = false;
@@ -93,7 +107,7 @@ export class FrameSequence {
 
   private draw(i: number): void {
     const img = this.images[i];
-    if (!this.ctx || i < 0 || i === this.current || !img) return;
+    if (!this.active || !this.ctx || i < 0 || i === this.current || !img) return;
     const { width, height } = this.canvas;
     const r = coverRect(img.naturalWidth, img.naturalHeight, width, height);
     this.ctx.clearRect(0, 0, width, height);

@@ -112,8 +112,8 @@ export function initDestaques(section: HTMLElement): void {
         if (index !== shown) {
           shown = index;
           navs.forEach((el, k) => el.classList.toggle("is-active", k === index));
-          stage.classList.toggle("uses-seq", Boolean(seqs[index]));
-          if (seqCanvas) seqCanvas.hidden = !seqs[index];
+          stage.classList.toggle("uses-seq", Boolean(seqs[index])); // mostra o canvas (CSS)
+          seqs.forEach((s, k) => s?.setActive(k === index)); // o canvas é um só: só o sabor na tela desenha
           mist?.setTint(items[index]?.glow ?? "#d4ae63");
         }
         if (mist) mist.level = mistLevel(local);
@@ -163,6 +163,7 @@ export function initDestaques(section: HTMLElement): void {
       return () => {
         io.disconnect();
         mist?.pause();
+        seqs.forEach((s) => s?.setActive(false)); // frames que ainda chegarem não desenham mais
         ScrollTrigger.removeEventListener("refresh", onRefresh);
         section.classList.remove("is-animated");
         stage.classList.remove("uses-seq");

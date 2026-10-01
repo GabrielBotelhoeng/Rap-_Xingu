@@ -159,19 +159,21 @@
     box-shadow 0.25s;
 }
 
-.pill:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 22px -12px rgb(0 0 0 / 0.5);
-}
-
 .pill--ghost {
   background: transparent;
   color: var(--paper);
   box-shadow: inset 0 0 0 1.5px rgb(246 238 223 / 0.7);
 }
 
-.pill--ghost:hover {
-  box-shadow: inset 0 0 0 1.5px var(--paper);
+@media (hover: hover) {
+  .pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -12px rgb(0 0 0 / 0.5);
+  }
+
+  .pill--ghost:hover {
+    box-shadow: inset 0 0 0 1.5px var(--paper);
+  }
 }
 
 .hero :focus-visible {

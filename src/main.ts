@@ -32,8 +32,12 @@ async function boot() {
   const confirmed = ageGate();
   if (document.documentElement.dataset.age !== "ok") lenis?.stop();
 
-  // a palavra do hero é medida com a fonte certa
-  await document.fonts.load('900 100px "Big Shoulders Display"').catch(() => undefined);
+  // o hero mede a palavra e, no celular, a altura do painel de textos: com as fontes certas
+  await Promise.all([
+    document.fonts.load('900 100px "Big Shoulders Display"'),
+    document.fonts.load('600 40px "Fraunces Variable"'),
+    document.fonts.load('15px "Manrope Variable"'),
+  ]).catch(() => undefined);
 
   // ScrollTriggers criados de cima para baixo: hero, destaques, depois o resto
   const heroEl = document.querySelector<HTMLElement>("[data-hero]");
