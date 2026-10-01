@@ -26,12 +26,15 @@ export function initHeader(lenis: Lenis | null): void {
   // (o pin embrulha o hero num .pin-spacer, então nextElementSibling não serve)
   // decide pelo progresso, não por isActive: no fim da página (progress 1) o trigger fica inativo
   // e o header perdia o fundo por cima do FAQ; onRefresh cobre quem recarrega já rolado
+  // começa quando o hero já subiu um quarto da tela: a base dele (painel, seletor, aviso de venda proibida)
+  // passava por baixo do logo e do menu ainda transparentes e as letras se embolavam (no celular o
+  // painel ocupa quase metade da altura, então "top top" era tarde demais)
   const afterHero = document.querySelectorAll("main section[data-header]")[1];
   if (afterHero) {
     const solid = (self: ScrollTrigger) => header.classList.toggle("is-solid", self.progress > 0);
     ScrollTrigger.create({
       trigger: afterHero,
-      start: "top top",
+      start: "top 75%",
       end: "max",
       onToggle: solid,
       onRefresh: solid,

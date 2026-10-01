@@ -3,7 +3,9 @@ Separa as folhas de sprites geradas no Higgsfield (fundo transparente, peças so
 peça, para o fundo flutuante do hero. Cada peça é um componente conectado do canal alfa (com uma
 dilatação leve para não separar pontas finas), recortada justa e reduzida até `--max` px no lado maior.
 
-  python scripts/recortar-sprites.py <folha.png> <prefixo> [nome1 nome2 ...] [--max=440]
+  python scripts/recortar-sprites.py <folha.png> <prefixo> [nome1 nome2 ...] [--max=440] [--halo]
+
+--halo limpa o halo claro semitransparente que algumas gerações deixam em volta das peças.
 
 Sem nomes, as peças saem como <prefixo>-1.webp, <prefixo>-2.webp… na ordem de leitura (linhas de cima
 para baixo, da esquerda para a direita). Com nomes, o n-ésimo nome vai para a n-ésima peça e "-" pula a peça.
@@ -45,12 +47,31 @@ def pieces(sheet: Image.Image) -> list[tuple[int, int, int, int]]:
     return [b for row in rows for b in sorted(row, key=lambda b: b[0])]
 
 
+def clean_halo(sheet: Image.Image) -> Image.Image:
+    """Tira o halo claro semitransparente que algumas gerações deixam em volta das peças: fica só o
+    núcleo opaco, com 1 px de borda suave refeita, e a borda ganha a cor da própria peça (sem franja branca)."""
+    rgba = np.asarray(sheet).copy()
+    a = rgba[..., 3].astype(np.float32) / 255
+    core = (a >= 0.88).astype(np.uint8)
+    core = cv2.morphologyEx(core, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+    soft = np.clip(cv2.GaussianBlur(core.astype(np.float32), (0, 0), 0.9) * 1.5, 0, 1)
+    rgba[..., 3] = (np.minimum(a, soft) * 255).astype(np.uint8)
+    # cor da borda: preenchida a partir do núcleo (o que estava fora dele era halo claro)
+    ring = ((soft > 0) & (core == 0)).astype(np.uint8)
+    rgb = np.ascontiguousarray(rgba[..., :3])
+    fill = cv2.inpaint(rgb, ring, 3, cv2.INPAINT_TELEA)
+    rgba[..., :3] = np.where(ring[..., None] > 0, fill, rgb)
+    return Image.fromarray(rgba, "RGBA")
+
+
 def main() -> None:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    opts = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--"))
+    opts = dict((a[2:].split("=", 1) + [""])[:2] for a in sys.argv[1:] if a.startswith("--"))
     if len(args) < 2:
         raise SystemExit(__doc__)
     sheet = Image.open(args[0]).convert("RGBA")
+    if "halo" in opts:
+        sheet = clean_halo(sheet)
     prefix, names = args[1], args[2:]
     limit = int(opts.get("max", 440))
     OUT.mkdir(parents=True, exist_ok=True)

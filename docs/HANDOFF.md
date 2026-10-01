@@ -1,7 +1,9 @@
 # Handoff — Landing Rapé Xingu
 
-Estado em **2026-10-01**, fim da 2ª sessão (revisão responsiva): prévia revisada e aprovada pelo usuário ("muito bom"),
-trabalho mesclado no `main`. Leia junto com `PROJETO.md` (spec) e `docs/copy.md` (texto oficial).
+Estado em **2026-10-01**, fim da 3ª sessão: story 1.2 (hero com fotos padronizadas, destaques redesenhados e
+celular) implementada no branch `feat/1.2-hero-destaques-mobile` e publicada na **prévia** para o usuário revisar.
+O `main` continua na versão aprovada da sessão 2 até o ok dele ("commitar e subir" → fast-forward + push).
+Leia junto com `PROJETO.md` (spec), `docs/copy.md` (texto oficial) e `docs/stories/1.2.hero-destaques-mobile.story.md`.
 
 ## Como rodar
 
@@ -9,10 +11,12 @@ trabalho mesclado no `main`. Leia junto com `PROJETO.md` (spec) e `docs/copy.md`
 npm install
 npm run dev          # http://localhost:5173
 npm run build        # tsc + vite build → dist/
-npm test             # vitest (42 testes)
+npm test             # vitest (41 testes)
 npm run lint && npm run typecheck
 npm run build && npm run shots                  # screenshots em .shots/ (Chrome instalado)
 npm run deploy:pages                            # prévia no GitHub Pages (exige tudo commitado)
+python scripts/recortar-fotos.py                # recorta lata + tampa das fotos em assets/raw/fotos-padronizadas/
+python scripts/recortar-sprites.py <png> x nomes… [--max=440] [--halo]   # peças do fundo flutuante
 ```
 
 **Prévia para revisão:** https://gabrielbotelhoeng.github.io/Rap-_Xingu/ — build com `noindex` (`VITE_NOINDEX=1`)
@@ -22,119 +26,97 @@ Para conferir a prévia no ar: `npm run shots -- --base=https://gabrielbotelhoen
 
 Opções do `shots`: `--only=375,375s,390s,768,1280,1440`, `--reduced=1` (testa prefers-reduced-motion).
 `375s` e `390s` são iPhone SE e iPhone 13 com a altura real do Safari (barras abertas = `100svh`): 375×548 e 390×664.
-O headless força reduced-motion por padrão; o script já liga `reducedMotion: "no-preference"`.
-Além das imagens, o script falha (exit 1) se achar erro de console/rede ou um dos bugs de layout já vistos:
-CTA dos destaques fora da tela ou sob a barra de WhatsApp, palavra do hero sobre o painel ou fora da tela,
-header sem fundo no fim da página. O preview sobe pela API do Vite e é encerrado no fim (a versão antiga, com
-`spawn`, deixava um `vite preview` órfão na porta 4173 no Windows).
+Além das imagens, o script falha (exit 1) se achar erro de console/rede ou um dos bugs de layout já vistos: produto
+cobrindo mais que a base da palavra do hero (em todos os sabores), palavra sobre o painel ou fora da tela, rolagem
+horizontal, CTA dos destaques sob a barra de WhatsApp, header sem fundo no fim da página.
 
 Repo: `git@github.com:GabrielBotelhoeng/Rap-_Xingu.git` (branch `main`). Esta pasta tem git **próprio**;
 o git da raiz do Desktop é outro repo (Nutri_Fit) e a pasta foi posta no `.git/info/exclude` dele.
 
-## Feito
+## Sessão 3 — pedido do usuário e o que mudou
+
+Pedido: (1) no hero, usar as fotos novas no mesmo padrão, deixar legível a palavra que ficava atrás do produto e pôr
+coisas flutuando no fundo (latinhas com opacidade e elementos do rapé); (2) refazer "Os mais pedidos" — estava feio,
+com "mudas de árvore", rolagem travada e fontes exóticas; (3) celular 100%. Higgsfield liberado sem aprovação nesta
+rodada, com os melhores modelos.
+
+1. **Fotos** (`assets/raw/fotos-padronizadas/`): lata aberta + tampa, vistas de cima, fundo branco. `scripts/recortar-fotos.py`
+   ajusta um círculo para cada peça e usa o círculo como máscara (o aro de metal tem reflexos quase brancos que um limiar
+   comeria), reconstrói o pedaço da lata escondido sob a tampa e salva tudo na mesma escala em `public/img/produtos/`
+   (lata 800 px de diâmetro + versão `-sm`), mais o leque das 4 tampas. O Puro Tabaco veio com 500 px: ampliado no
+   Higgsfield (Bytedance Upscale 4K; o Topaz Text Refine ficou atrás e o Recovery generativo redesenhou o logo).
+   **As fotos vieram retocadas por IA:** o texto miúdo das tampas tem defeitos ("CNPJ 34.565.989", "VENDA FIFA").
+2. **Hero** (`src/hero/`): cada sabor é lata + tampa (`src/content/products.ts`). O produto chega fechado, pousa e abre:
+   a tampa desliza para o lado e o pó levanta (`openTimeline`). A palavra fica **acima** do produto: `placement.ts › stackLayout`
+   calcula fonte e posições para o produto cobrir no máximo `overlap` (16%) da altura das letras, contando a flutuação;
+   sem espaço, o produto encolhe primeiro e depois os dois (testes em `tests/hero-placement.test.ts`). 5 slides:
+   Selva, Super Mentolado, Puro Tabaco, Puro Vick e a fábrica (tampas em leque).
+3. **Fundo flutuante** (`hero/floaters.ts` + `renderHeroFloaters`): latinhas reais, folhas de tabaco e especiarias em 3
+   camadas (longe/meio/perto: tamanho, desfoque e opacidade). Deriva por CSS, parallax do ponteiro no desktop, sobe com a
+   rolagem do pin e leva um "vento" na troca de sabor. Celular: menos itens, sem blur. Para com a pausa, fora da tela e
+   com movimento reduzido. Peças do Higgsfield (GPT Image 2.5 max 4K, fundo transparente) em `public/img/fundo/`.
+4. **Destaques** (`src/destaques/`, `styles/destaques.css`): sem pin, sem ervas, sem névoa e sem frame-sequence (removidos;
+   continuam no histórico do git). Um sabor por linha (alternando lado no desktop, empilhado no celular); a latinha chega
+   fechada e abre conforme a linha sobe na tela (scrub, nos dois sentidos), a luz na cor do rótulo acende e o pó levanta.
+   Tipografia: Big Shoulders (a mesma da palavra do hero, parente do letreiro das latas) + Manrope; saiu a Fraunces itálica.
+5. **Catálogo**: Super Mentolado, Selva e Puro Tabaco com as tampas novas.
+6. **Celular**: revisado em 375, 375×548, 390×664, 768, 1280 e 1440, com e sem movimento reduzido. Corrigido o header ainda
+   transparente por cima do painel do hero quando ele sai da tela (agora ganha fundo quando a seção seguinte passa de 75% da tela).
+
+**Decisões tomadas sem o usuário (revisar na prévia):**
+
+- Destaques com Super Mentolado, Eucaliptu’s Selva e Puro Tabaco (os que têm foto padronizada) no lugar de Tradicional da
+  Aldeia e Pai Vinicius. A copy já pedia confirmação dos 3 mais vendidos; trocar é só editar `destaques.config.ts`.
+  Selva e Puro Tabaco ficam sem linha de apoio (a copy não tem texto para eles).
+- Puro Vick no hero com composição "[a confirmar]" e fora do catálogo (o catálogo tem "Super Vick" e "Vick Ouro";
+  falta o dono dizer se é o mesmo sabor). A palavra do slide é "Vick".
+- Hero com 5 slides e trecho de rolagem menor por sabor (0,5 tela no desktop, 0,4 no celular) para o pin não ficar longo.
+
+## Feito (sessões 1 e 2, ainda válido)
 
 - Vite 8 + TypeScript 6 (o TS 7 quebra o typescript-eslint), GSAP 3.15 + ScrollTrigger, Lenis só no desktop,
   fontes self-hosted (@fontsource: Fraunces opsz, Manrope, Big Shoulders 900).
 - Conteúdo em dados (`src/content/*.ts`) e renderizado **no build** por `build/content-plugin.ts`
-  (marcadores `<!--@...-->` e `{{...}}` no `index.html`). Catálogo, opções do formulário, destaques e JSON-LD saem estáticos.
-- Seções na ordem do MD: age gate (+18, localStorage `rx:maioridade`, script no `<head>` evita piscar),
-  header fixo (tom claro/escuro pela seção embaixo, fundo depois do hero, menu mobile), hero cinético,
-  destaques, catálogo (filtros), fábrica, revenda (form → wa.me), FAQ, rodapé no campo mata, barra fixa de WhatsApp no celular.
-- **Hero**: portado do protótipo (`docs/referencias/hero-rape-xingu/`) para `src/hero/hero.config.ts` + `hero.ts`, mesma lógica.
-  Pin do ScrollTrigger por N trechos (`scroll.perSlide`), passos relativos (não pula para trás quando o autoplay já andou),
-  autoplay espera o usuário parar de rolar, botão de pausa (WCAG 2.2.2), setas só com foco no hero, swipe, blur desligado no celular.
-- **Destaques**: timeline única "scrubada"; a tampa real (foto) sobe e descansa ao lado da lata aberta (recorte do `puro-tabaco-aberto`),
-  ervas se afastam, névoa de pó em canvas (`mist.ts`). Motor de frame-sequence pronto (`frame-sequence.ts`): basta preencher
-  `frames` em `destaques.config.ts` (testado com frames sintéticos na sessão 2). `gsap.matchMedia()` desktop/mobile/reduce.
-  Sem JS ou com movimento reduzido: vitrine estática.
-  Flag `DESTAQUES_CONFIG.enabled` esconde a seção e o item do menu.
-- Higgsfield: 1 geração aprovada (folha com 10 ervas, GPT Image 2.5, 2,75 créditos) → `public/img/ervas/`. Registro em `docs/prompts.md`.
-  Projeto Higgsfield "Rapé Xingu — Landing" (`796f29b2-5c26-4bc9-9e45-1b314cff88fd`), saldo ~951 créditos.
-- Skills oficiais do GSAP (MIT) instaladas no projeto em `.claude/skills/gsap-*`.
-- Verificado: build, lint, typecheck, 29 testes, screenshots 1440px sem erro de console/rede.
+  (marcadores `<!--@...-->` e `{{...}}` no `index.html`). Catálogo, formulário, destaques, fundo do hero e JSON-LD saem estáticos.
+- Seções: age gate (+18, localStorage `rx:maioridade`), header fixo (tom pela seção embaixo, menu mobile), hero cinético,
+  destaques, catálogo (filtros), fábrica, revenda (form → wa.me), FAQ, rodapé, barra fixa de WhatsApp no celular.
+- Hero: pin por N trechos (`scroll.perSlide`), autoplay que espera a rolagem parar, botão de pausa (WCAG 2.2.2), setas com
+  foco no hero, swipe, blur desligado no celular. Sessão 2: revisão responsiva (11 correções, ver histórico do git).
+- Skills oficiais do GSAP (MIT) em `.claude/skills/gsap-*`.
 
 ## Decisões com o usuário (2026-10-01)
 
-- Higgsfield: sempre mostrar plano (prompt, modelo, proporção, quantidade, custo) e esperar aprovação. Nada de IA para latinha ou fábrica.
-- Destaques construídos agora (aprovado), com placeholder para os sabores sem foto.
-- Fotos atuais (de revendedores) ficam como provisórias; o usuário vai mandar fotos melhores.
-- Sabores sem foto usam a latinha provisória desenhada em CSS (`.tin-ph`), marcada `[foto da latinha]`.
+- Higgsfield: por padrão, mostrar plano (prompt, modelo, proporção, quantidade, custo) e esperar aprovação. Nada de IA para
+  gerar latinha ou fábrica. Na sessão 3 o usuário liberou sem aprovação e pediu os **melhores modelos**.
+- Fotos atuais são provisórias; o usuário vai mandar fotos melhores. Sabores sem foto usam a latinha desenhada em CSS (`.tin-ph`).
 - Texto entre `[colchetes]` aparece com sublinhado pontilhado (`.tbc`) — ainda depende do dono.
 - "Pedir no WhatsApp" (catálogo) e "Quero revender este sabor" (destaques) levam ao formulário com o sabor já marcado.
-- Mensagem do WhatsApp = template da copy + linhas `CNPJ:` e `WhatsApp:` quando preenchidos (sem sabor marcado, a frase de sabores some).
-- Grade do catálogo usa `auto-fill` em vez do `auto-fit` do MD (com 1 card, o auto-fit esticava o card na largura toda).
-
-## Sessão 2 — revisão responsiva (2026-10-01)
-
-Shots em 375, 768, 1280 e 1440 revisados, mais medições em 12 tamanhos (celulares com a altura real do Safari e do
-Chrome, 1024×768, 1280×720, 1366×657). Corrigido:
-
-1. **Hero no celular**: em telas baixas (Safari com barras: 375×548, 390×664; 360×640, 430×740) a latinha cobria o painel
-   de textos. Novo `src/hero/placement.ts`: as posições do `hero.config.ts` continuam sendo o ideal, e o motor só sobe ou
-   encolhe o produto quando ele encostaria no painel (folga de 8 px), sem subir além do terço de cima da palavra. A conta
-   inclui o deslocamento que o giro do protótipo dá à imagem (até ~40 px). 12 testes em `tests/hero-placement.test.ts`.
-2. **Hero no desktop**: entre ~1180 e 1440 px a palavra e o produto invadiam o painel (o "Ver catálogo" ficava embaixo
-   do "XINGU" e da latinha). Agora os dois respeitam a largura livre entre o painel e o seletor (folga de 24 px).
-3. **Hero com movimento reduzido**: a palavra saía gigante (500 px), cobrindo o painel e o seletor. O reset de
-   `prefers-reduced-motion` (`transition-duration: 0.01ms` em `*`) criava uma transição em toda mudança de estilo,
-   e o `fitWord` media o tamanho antigo. Agora é `0s` (`base.css`). Sem autoplay, o timer (pausa + progresso) fica escondido.
-4. **`hidden` não escondia** quando o CSS dava `display` ao elemento: no age gate, depois de "Não, sair", a pergunta e o
-   botão "Sim, entrar" continuavam na tela; o botão de pausa aparecia sem autoplay. Regra global
-   `[hidden] { display: none !important }` em `base.css`.
-5. **Destaques**: o "Quero revender este sabor" ficava cortado ou em cima da navegação 01/02/03 em 1280×720 e 1280×800
-   (Tradicional da Aldeia, com o nome em 2 linhas) e embaixo da barra de WhatsApp em todos os celulares. Os textos agora
-   ficam empilhados no grid (a linha reserva a altura do maior) e, no celular, o palco usa a sobra da linha.
-   A barra de WhatsApp também some nos destaques (lá o botão principal é o do sabor).
-6. **Frame-sequence** (bugs latentes, que só apareceriam com os frames): o canvas ficava com altura 0 (a lata, que dá a
-   altura da caixa, saía do layout); ao voltar a um sabor, o canvas compartilhado mostrava o frame de outro; e frames de
-   outro sabor que terminavam de carregar desenhavam por cima do sabor na tela. Agora usa `visibility` em vez de
-   `display`/`hidden`, e `FrameSequence.setActive()` deixa só o sabor na tela desenhar. Testado com frames sintéticos
-   (19 imagens diferentes nos sabores 1 e 3): frame certo em cada passo, na ida e na volta, e nenhum desenho fora de hora.
-7. **Header sem fundo no fim da página** (o FAQ passava por baixo do logo): no fim o trigger fica inativo (`progress 1`);
-   agora decide por `progress > 0`, também no `onRefresh`.
-8. **Blur do header não funcionava no Chrome**: com `backdrop-filter` e `-webkit-backdrop-filter` escritos à mão
-   (o prefixado por último), o Lightning CSS do build mantinha só o `-webkit-`. Agora fica só a propriedade padrão e o build gera as duas.
-9. **Hover grudado no toque**: no celular, desmarcar um sabor no formulário deixava a borda do `:hover` (parecia marcado).
-   Hovers de chips, filtros, cards, botões e pílulas agora só valem com `@media (hover: hover)`.
-10. **Fontes antes de medir**: o hero espera também Fraunces e Manrope (no celular a altura do painel entra na posição da latinha).
-11. A legenda "Sabores de interesse" alinhada com os outros rótulos (o navegador dava 2 px de recuo).
-
-Também conferido (item 2 da sessão 1): os destaques 2 e 3 com tampa provisória e ervas, e o scrub reverso. O estado de
-cada sabor (opacidade e `transform` da tampa, textos, ervas, luz, navegação) é idêntico na ida e na volta pela mesma posição,
-em 1280 e 390 px. Verificado no fim: build, lint, typecheck, 41 testes e `npm run shots` nos 6 tamanhos, com e sem
-movimento reduzido, sem erro de console, rede ou layout.
-
-**Decisões desta sessão** (o usuário revisou a prévia com elas e aprovou sem objeções; nenhuma foi discutida em separado):
-
-- Barra fixa de WhatsApp escondida também nos destaques (antes, só no hero e no formulário).
-- No celular, o hero pode subir ou diminuir a latinha de um sabor para não cobrir o texto; o `hero.config.ts` segue como posição ideal.
 
 ## Próximos passos (em ordem)
 
-1. Lighthouse mobile (meta ≥ 90 performance e acessibilidade). Candidatos se faltar: `mix-blend-mode` do grão do hero,
-   tamanho das ervas (erva-doce 87 KB), pré-carregar a fonte da palavra do hero.
-2. Testar em iPhone com Safari real (pin + `100svh` + barra de endereço que encolhe ao rolar). O hero e os destaques
-   foram medidos com a altura de barras abertas, o pior caso.
-3. Gerar `public/og.jpg` (1200×630, latinha sobre fundo mata) — o meta `og:image` já aponta para ele. Definir `VITE_SITE_URL` no deploy.
-4. Deploy (Vercel ou Netlify, estático). Só com o ok do usuário.
-5. Quando chegarem os assets do dono: logo original em `assets/brand/` (trocar o "Rapé Xingu" em Fraunces do header/rodapé),
-   fotos das latinhas (trocar `photo` em `src/content/catalog.ts` e `lid` em `destaques.config.ts`), fotos da fábrica
-   (trocar os `.ph-photo` no `index.html`), confirmação dos 3 mais vendidos, advertência sanitária oficial e dados entre colchetes.
-6. Com fotos fechada/aberta dos 3 mais vendidos: pipeline do MD (remove_background → image-to-video 16:9 e 9:16 → ffmpeg → `public/frames/`).
-   Mostrar o plano e o custo antes. O motor já roda com frames (testado na sessão 2); os frames 16:9 são desenhados em
-   "cover" num palco quase quadrado, então a lata precisa estar centrada no vídeo, com margem nas laterais.
+1. Revisão da prévia pelo usuário (inclusive no celular). Com o ok: fast-forward de `feat/1.2-hero-destaques-mobile` no `main` e push.
+2. Lighthouse mobile (meta ≥ 90 performance e acessibilidade). Candidatos se faltar: `mix-blend-mode` do grão do hero,
+   número de itens do fundo flutuante no celular, pré-carregar a fonte da palavra do hero.
+3. Testar em iPhone com Safari real (pin + `100svh` + barra de endereço que encolhe ao rolar).
+4. Gerar `public/og.jpg` (1200×630, latinha sobre fundo mata) — o meta `og:image` já aponta para ele. Definir `VITE_SITE_URL` no deploy.
+5. Deploy (Vercel ou Netlify, estático). Só com o ok do usuário.
+6. Assets do dono: logo original em `assets/brand/`, fotos originais das latas (rodar `scripts/recortar-fotos.py`; o script
+   espera lata aberta à esquerda + tampa à direita, vistas de cima, fundo branco), fotos de Tradicional da Aldeia e Pai Vinicius
+   (para os destaques), fotos da fábrica, advertência sanitária oficial e dados entre colchetes.
 
 ## Mapa
 
 | O quê | Onde |
 | --- | --- |
 | Textos e sabores | `src/content/catalog.ts`, `src/content/site.ts`, `src/destaques/destaques.config.ts`, `index.html` |
-| Hero (tudo editável) | `src/hero/hero.config.ts` |
-| Encaixe do produto do hero na tela | `src/hero/placement.ts` (puro, com testes) |
+| Fotos padronizadas (lata + tampa) | `src/content/products.ts`, `public/img/produtos/`, `scripts/recortar-fotos.py` |
+| Hero (tudo editável: slides, fundo flutuante) | `src/hero/hero.config.ts` |
+| Encaixe palavra + produto | `src/hero/placement.ts` (puro, com testes) |
+| Fundo flutuante | `src/hero/floaters.ts`, `public/img/fundo/`, `scripts/recortar-sprites.py` |
+| Destaques | `src/destaques/destaques.ts`, `src/styles/destaques.css` |
 | Verificação visual + checagens de layout | `scripts/screenshots.mjs` (`npm run shots`) |
 | Prévia no GitHub Pages | `scripts/deploy-pages.mjs` (`npm run deploy:pages`), branch `gh-pages` |
 | Estilos (tokens do MD) | `src/styles/tokens.css` + um CSS por área |
 | Geração de HTML no build | `build/content-plugin.ts`, `src/content/render.ts` |
-| Imagens | `public/img/` (`latas/`, `ervas/`, fotos do hero na raiz) |
-| Originais e gerações | `assets/raw/` (`higgsfield/ervas-sprite-v1.png`) |
-| Story e checklist | `docs/stories/1.1.landing-page.story.md` |
+| Originais e gerações | `assets/raw/` (`fotos-padronizadas/`, `higgsfield/`) — registro em `docs/prompts.md` |
+| Stories | `docs/stories/1.1.landing-page.story.md`, `docs/stories/1.2.hero-destaques-mobile.story.md` |

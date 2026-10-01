@@ -33,7 +33,7 @@ const photos = (id: ProductId, tinPx: number, lidPx: number, powder: string): Pr
 export const PRODUCTS: Record<ProductId, ProductPhotos> = {
   "eucaliptus-selva": photos("eucaliptus-selva", 808, 846, "78,56,24"),
   "super-mentolado": photos("super-mentolado", 808, 837, "74,48,22"),
-  "puro-tabaco": photos("puro-tabaco", 806, 852, "96,70,40"),
+  "puro-tabaco": photos("puro-tabaco", 803, 849, "96,70,40"),
   "puro-vick": photos("puro-vick", 808, 820, "76,52,24"),
 };
 
@@ -41,4 +41,4 @@ export const PRODUCTS: Record<ProductId, ProductPhotos> = {
 export const lidRatio = (p: ProductPhotos) => p.lidPx / p.tinPx;
 
 /** As 4 tampas em leque (slide da fábrica no hero), também gerado pelo script. */
-export const LID_FAN = { src: "img/produtos/tampas-leque.webp", srcSm: "img/produtos/tampas-leque-sm.webp", width: 1616, height: 569 };
+export const LID_FAN = { src: "img/produtos/tampas-leque.webp", srcSm: "img/produtos/tampas-leque-sm.webp", width: 1618, height: 569 };

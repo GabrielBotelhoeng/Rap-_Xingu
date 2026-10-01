@@ -33,11 +33,11 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "assets" / "raw" / "fotos-padronizadas"
 OUT = ROOT / "public" / "img" / "produtos"
 
-# sabor -> foto original (a do Puro Tabaco veio com 500 px e foi ampliada no Higgsfield (Topaz, Text Refine), ver docs/prompts.md)
+# sabor -> foto original (a do Puro Tabaco veio com 500 px e foi ampliada no Higgsfield (Bytedance Upscale 4K), ver docs/prompts.md)
 FOTOS = {
     "eucaliptus-selva": "eucaliptus-selva.webp",
     "super-mentolado": "super-mentolado.webp",
-    "puro-tabaco": "puro-tabaco-topaz.png",
+    "puro-tabaco": "puro-tabaco-4k.webp",
     "puro-vick": "puro-vick.webp",
 }
 # ordem das tampas no leque, da de trás para a da frente

@@ -1,6 +1,6 @@
 /** Barra fixa de WhatsApp no celular: some nas seções que já têm o botão principal da tela
-    (hero, destaques e formulário — um botão principal por tela). Nos destaques ela também
-    cobria o "Quero revender este sabor", que fica no pé da seção presa. */
+    (hero, destaques e formulário — um botão principal por tela; nos destaques cada sabor tem
+    o seu "Quero revender este sabor"). */
 export function initWaBar(): void {
   const bar = document.querySelector<HTMLElement>("[data-wa-bar]");
   if (!bar) return;

@@ -55,8 +55,8 @@
   pointer-events: none;
   background: radial-gradient(
     closest-side,
-    color-mix(in srgb, var(--glow) 58%, transparent) 0%,
-    color-mix(in srgb, var(--glow) 24%, transparent) 46%,
+    color-mix(in srgb, var(--glow) 72%, transparent) 0%,
+    color-mix(in srgb, var(--glow) 34%, transparent) 44%,
     transparent 74%
   );
 }

@@ -67,7 +67,7 @@ export const FLAVORS: readonly Flavor[] = [
     name: "Puro Tabaco",
     line: "xingu",
     composition: "Fumo torrado e moído",
-    photo: { src: "/img/produtos/puro-tabaco-tampa-sm.webp", width: 426, height: 426 },
+    photo: { src: "/img/produtos/puro-tabaco-tampa-sm.webp", width: 424, height: 424 },
     tint: "#5A3418",
   },
   {

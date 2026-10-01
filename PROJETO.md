@@ -84,8 +84,14 @@ Protótipo de referência: `docs/referencias/hero-rape-xingu/index.html` (HTML +
 - Tudo editável no objeto `HERO_CONFIG`: textos, imagem, cores, posição/rotação/tamanho do produto (desktop e mobile), direção de entrada, cor do pó, tempos.
 - No site completo, **não** sequestrar a roda do mouse em loop: usar ScrollTrigger com pin por N slides (cada trecho de scroll avança um sabor) e depois liberar a página. Autoplay continua valendo quando o usuário não rola.
 - Trocar as imagens do protótipo (fotos de revendedores, algumas em baixa resolução) pelas fotos próprias recortadas, em `public/img/`.
+- **Atualização 2026-10-01 (sessão 3):** a palavra fica acima do produto, que só encosta na base das letras (a palavra
+  tem que se ler sempre); o produto é lata + tampa e abre ao pousar; fundo com latinhas e ervas flutuando.
 
 ## Destaques animados (frame-sequence)
+> **Atualização 2026-10-01 (sessão 3, pedido do usuário):** a seção virou um sabor por linha, sem pin, sem ervas e sem
+> frame-sequence: a latinha (lata + tampa das fotos padronizadas) abre conforme a página rola. Ver `docs/HANDOFF.md` › Sessão 3.
+> O texto abaixo é a versão original da spec.
+
 - Cada destaque: latinha grande no centro abrindo conforme o scroll; névoa fina de pó subindo atrás; ervas do sabor flutuando (ex.: Super Mentolado → eucalipto, cravo, alecrim).
 - A névoa/luz de fundo pode puxar levemente a cor do rótulo de cada sabor (verde, marrom, roxo). A UI continua no tema Mata.
 - Latinha e fundo em camadas separadas: a latinha é a frame-sequence; névoa e folhas são outra camada (vídeo em loop ou canvas).
