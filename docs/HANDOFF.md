@@ -1,6 +1,7 @@
 # Handoff — Landing Rapé Xingu
 
-Estado em **2026-10-01**, fim da 2ª sessão (revisão responsiva). Leia junto com `PROJETO.md` (spec) e `docs/copy.md` (texto oficial).
+Estado em **2026-10-01**, fim da 2ª sessão (revisão responsiva): prévia revisada e aprovada pelo usuário ("muito bom"),
+trabalho mesclado no `main`. Leia junto com `PROJETO.md` (spec) e `docs/copy.md` (texto oficial).
 
 ## Como rodar
 
@@ -103,7 +104,7 @@ cada sabor (opacidade e `transform` da tampa, textos, ervas, luz, navegação) �
 em 1280 e 390 px. Verificado no fim: build, lint, typecheck, 41 testes e `npm run shots` nos 6 tamanhos, com e sem
 movimento reduzido, sem erro de console, rede ou layout.
 
-**Decisões desta sessão, a confirmar com o usuário:**
+**Decisões desta sessão** (o usuário revisou a prévia com elas e aprovou sem objeções; nenhuma foi discutida em separado):
 
 - Barra fixa de WhatsApp escondida também nos destaques (antes, só no hero e no formulário).
 - No celular, o hero pode subir ou diminuir a latinha de um sabor para não cobrir o texto; o `hero.config.ts` segue como posição ideal.
